@@ -55,7 +55,7 @@
 
     $('fixturesBody').innerHTML = matches.slice().sort((a,b)=>(a.match_no||0)-(b.match_no||0)).map(m=>`<tr><td>${esc(formatTime(m.scheduled_at))}</td><td>${esc(m.court||'—')}</td><td>${esc(m.match_type)}</td><td>${esc(team(m.team_a)?.name||'—')}<br><small>${esc(lineup(m,'A'))}</small></td><td>${esc(team(m.team_b)?.name||'—')}<br><small>${esc(lineup(m,'B'))}</small></td><td>${esc(lineup(m,'A'))} vs ${esc(lineup(m,'B'))}</td><td><span class="status ${esc(m.status)}">${esc(m.status)}</span></td><td><b>${esc(scoreText(m))}</b>${m.status==='done'&&winner(m)?`<br><small>Winner: ${esc(team(winner(m))?.name||'')}</small>`:''}</td></tr>`).join('') || '<tr><td colspan="8" class="muted">No fixtures yet.</td></tr>';
 
-    $('teamCards').innerHTML = teams.map(t=>`<div class="teamcard"><div class="teamtitle"><h2>${esc(t.name)}</h2><span>${t.players.length} players</span></div><p class="muted">Captain: ${esc(t.captain||'—')}</p>${t.players.map(p=>`<div class="player"><span>${esc(p.name)}</span><span class="gender">${p.gender==='F'?'♀ Female':'♂ Male'}</span></div>`).join('') || '<p class="muted">No players registered.</p>'}</div>`).join('') || '<div class="card"><b>No teams yet.</b></div>';
+    $('teamCards').innerHTML = teams.map(t=>`<div class="teamcard"><div class="teamtitle"><h2>${esc(t.name)}</h2><span>${(t.players||[]).length} players</span></div><p class="muted">Captain: ${esc(t.captain||'—')}</p>${(t.players||[]).map(p=>`<div class="player"><span>${esc(p.name)}</span><span class="gender">${p.gender==='F'?'♀ Female':'♂ Male'}</span></div>`).join('') || '<p class="muted">No players registered.</p>'}</div>`).join('') || '<div class="card"><b>No teams yet.</b></div>';
   }
   function courtHtml(m) {
     const a=team(m.team_a), b=team(m.team_b), gs=matchGames(m.id);
@@ -74,9 +74,13 @@
       sb.from('match_players').select('*'),
       sb.from('games').select('*')
     ]);
-    const bad=[tx,tt,pp,mm,mp,gg].find(r=>r.error);
-    if (bad) { $('connection').textContent='ERROR'; $('connection').className='badge'; document.querySelector('main').insertAdjacentHTML('beforeend',`<div class="card" style="margin-top:20px"><b>Unable to load tournament data.</b><p class="muted">${esc(bad.error.message)}</p></div>`); return; }
-    tournament=tx.data; teams=tt.data||[]; players=pp.data||[]; matches=mm.data||[]; matchPlayers=mp.data||[]; games=gg.data||[];
+    // Teams should remain visible even if a secondary dataset has a temporary problem.
+    if (tt.error) { $('connection').textContent='ERROR'; $('connection').className='badge'; document.querySelector('main').insertAdjacentHTML('beforeend',`<div class="card" style="margin-top:20px"><b>Unable to load teams.</b><p class="muted">${esc(tt.error.message)}</p></div>`); return; }
+    tournament=tx.data; teams=tt.data||[];
+    players=pp.error ? [] : (pp.data||[]);
+    matches=mm.error ? [] : (mm.data||[]);
+    matchPlayers=mp.error ? [] : (mp.data||[]);
+    games=gg.error ? [] : (gg.data||[]);
     // Attach each player's roster to its team so the public Teams & Players page always renders correctly.
     teams = teams.map(t => ({...t, players: players.filter(p => p.team_id === t.id)}));
     $('connection').textContent='LIVE'; $('connection').className='badge ok'; render();
