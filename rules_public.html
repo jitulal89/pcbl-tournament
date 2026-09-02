@@ -1,30 +1,4 @@
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>PCBL Admin | Tournament Manager</title>
-<link rel="stylesheet" href="styles.css">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-</head>
-<body>
-<header>
-  <div class="brand"><div class="logo">PCBL</div><div><strong>PCBL Tournament Manager</strong><small>Live Badminton Team Event</small></div></div>
-  <div class="head-actions"><span id="connection" class="badge">CONNECTING</span><a class="btn ghost" href="index.html">Public Site</a><button id="logoutBtn" class="btn ghost">Logout</button></div>
-</header>
-<main>
-<section id="loginView" class="login"><div class="login-card">
-  <div class="logo big">PCBL</div><h1>PCBL Tournament</h1><p>Admin & scorer access</p>
-  <form id="loginForm"><input id="email" type="email" placeholder="Email" autocomplete="username" required><input id="password" type="password" placeholder="Password" autocomplete="current-password" required><button id="loginBtn" class="btn dark full">Sign in</button></form>
-  <button id="demoBtn" class="link">Continue with demo data</button><p id="loginMsg" class="error"></p>
-</div></section>
-<section id="mainView" class="hidden">
-  <div class="hero"><div><span class="eyebrow">TOURNAMENT CONTROL</span><h1 id="tournamentTitle">PCBL Finals</h1><p>Teams, unlimited rosters, fixtures, lineups and live scoring.</p></div><div class="heroBtns"><button id="addMatchBtn" class="btn dark">+ Add Match</button><button class="btn" data-page="live">🔴 Live Courts</button></div></div>
-  <nav><button data-page="dashboard" class="active">Dashboard</button><button data-page="teams">Teams & Players</button><button data-page="fixtures">Fixtures</button><button data-page="live">Live Scoring</button><button data-page="rules">PCBL Rules</button></nav>
-  <div id="dashboard" class="page"><div id="stats" class="stats"></div><div class="two"><div class="card"><div class="cardhead"><h2>Team Standings</h2></div><div id="standings"></div></div><div class="card"><div class="cardhead"><h2>Schedule</h2></div><div id="schedule"></div></div></div></div>
-  <div id="teams" class="page hidden"><div class="two"><div class="card"><h2>Add Team</h2><form id="teamForm"><input id="teamName" placeholder="Team name" required><input id="captain" placeholder="Captain"><button class="btn dark full">Add Team</button></form></div><div class="card"><h2>Add Player</h2><form id="playerForm"><select id="playerTeam" required></select><input id="playerName" placeholder="Player name" required><select id="gender"><option value="M">Male</option><option value="F">Female</option></select><button class="btn dark full">Add Player</button></form></div></div><div id="teamCards" class="teamgrid"></div></div>
-  <div id="fixtures" class="page hidden"><div class="card"><div class="cardhead"><h2>Fixtures</h2><button id="addMatchBtn2" class="btn dark small">+ Match</button></div><div class="tablewrap"><table><thead><tr><th>Time</th><th>Court</th><th>Type</th><th>Team A</th><th>Team B</th><th>Lineup</th><th>Status</th><th></th></tr></thead><tbody id="fixturesBody"></tbody></table></div></div></div>
-  <div id="live" class="page hidden"><div class="livebar"><div><b>Live scoring</b><span class="muted"> Changes update automatically.</span></div><a class="btn" href="live.html" target="_blank">Open public screen</a></div><div id="liveGrid" class="livegrid"></div></div>
-  <div id="rules" class="page hidden">
+<section id="rules" class="page hidden">
   <div class="card rules-page">
     <div class="rules-title"><span class="eyebrow">OFFICIAL PCBL FINALS RULES</span><h2>PCBL Rules & Playing Format</h2><p class="muted">Final-format, pairing, backup and badminton edge-case rules used for the PCBL Finals.</p></div>
 
@@ -62,16 +36,6 @@
       <div class="rule"><b>3 PLAYERS UNAVAILABLE</b><ul><li>6 players remain.</li><li>The Triplet becomes a BYE for the opposition.</li></ul></div>
     </div></div>
 
-    <div class="rules-section blue"><h3>📅 7-MATCH UNIQUE PAIRING PLAN — REFERENCE</h3><p class="muted">This is the approved 9-player pairing reference from the PCBL pairing sheet. It is a pairing-variety plan; the separate PCBL Finals format above remains the scoring format for the Finals.</p><div class="tablewrap"><table class="pairing-table"><thead><tr><th>Match</th><th>Men’s Doubles 1</th><th>Men’s Doubles 2</th><th>Men’s Doubles 3</th><th>Triplet — First 15</th><th>Triplet — Next 15</th><th>Common Player</th></tr></thead><tbody>
-<tr><td>1</td><td>A2 + A8</td><td>A4 + A5</td><td>A7 + A9</td><td>A1 + A6</td><td>A3 + A6</td><td>A6</td></tr>
-<tr><td>2</td><td>A2 + A6</td><td>A3 + A7</td><td>A4 + A9</td><td>A5 + A8</td><td>A1 + A5</td><td>A5</td></tr>
-<tr><td>3</td><td>A2 + A9</td><td>A3 + A5</td><td>A4 + A6</td><td>A1 + A8</td><td>A1 + A7</td><td>A8</td></tr>
-<tr><td>4</td><td>A1 + A9</td><td>A4 + A7</td><td>A6 + A8</td><td>A2 + A3</td><td>A2 + A5</td><td>A2</td></tr>
-<tr><td>5</td><td>A1 + A4</td><td>A3 + A8</td><td>A5 + A9</td><td>A2 + A7</td><td>A6 + A7</td><td>A7</td></tr>
-<tr><td>6</td><td>A1 + A2</td><td>A5 + A7</td><td>A6 + A9</td><td>A4 + A8</td><td>A3 + A4</td><td>A8</td></tr>
-<tr><td>7</td><td>A1 + A3</td><td>A2 + A4</td><td>A5 + A6</td><td>A8 + A9</td><td>A7 + A8</td><td>A8</td></tr>
-</tbody></table></div><p class="success">✓ Across the 7-match reference plan, 35 unique pair relationships are used; the only unused pair is A3 + A9.</p></div>
-
     <div class="rules-section cream"><h3>🛡️ BACKUP PLAYER RULE</h3><ul><li>If any player backs out before the tournament, the designated backup player will join the team if available.</li><li>Once the backup player joins, they become a regular team player for the tournament.</li><li>The same pairing and Triplet rules apply to the backup player.</li></ul></div>
 
     <div class="rules-section edge"><h3>🏸 BADMINTON DOUBLES — EDGE CASE RULES</h3><div class="rules-grid two-col">
@@ -85,8 +49,4 @@
 
     <div class="rules-section standard"><h3>📖 STANDARD BADMINTON SCORING</h3><p>Unless the PCBL format specifically overrides it, standard BWF scoring applies: best of 3 games, 21 points per game, rally point scoring; at 20-all a 2-point lead is required, and at 29-all the side scoring the 30th point wins. Doubles service and court-rotation rules follow the Laws of Badminton.</p><p class="muted">PCBL-specific match formats (15-point matches, 60-point rotations and the 225-point Finals total) take precedence for this event.</p></div>
   </div>
-</div>
-</section></main>
-<div id="modal" class="modal hidden"><div id="modalBox" class="modalbox"></div></div>
-<script src="config.js"></script><script src="app.js"></script>
-</body></html>
+</section>

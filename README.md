@@ -13,3 +13,6 @@ Open `admin.html` and sign in with the Supabase Auth account. Admin/scorer contr
 Replace the files in the existing GitHub Pages repository with all files in this package. No changes are required to the Supabase URL/key in `config.js`.
 
 The public site uses the Supabase publishable key and only reads data. Database writes remain behind authenticated Supabase policies.
+
+Updated PCBL pairing enforcement rule:
+- Repeated pairing penalty: if the same two players are paired again, intentionally or by mistake, the opposite team is awarded 1 point.
