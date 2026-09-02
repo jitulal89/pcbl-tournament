@@ -1,22 +1,31 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>PCBL Tournament Manager</title><link rel="stylesheet" href="styles.css">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script></head>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PCBL Tournament Manager</title>
+<link rel="stylesheet" href="styles.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
 <body>
-<div id="app">
-<header><div class="brand"><div class="logo">PCBL</div><div><strong>PCBL Tournament Manager</strong><small>Live Badminton Team Event</small></div></div>
-<div class="head-actions"><span id="connection" class="badge">LOCAL DEMO</span><button class="btn ghost" onclick="logout()">Logout</button></div></header>
+<header>
+  <div class="brand"><div class="logo">PCBL</div><div><strong>PCBL Tournament Manager</strong><small>Live Badminton Team Event</small></div></div>
+  <div class="head-actions"><span id="connection" class="badge">CONNECTING</span><a class="btn ghost" href="live.html" target="_blank">Public Live</a><button id="logoutBtn" class="btn ghost">Logout</button></div>
+</header>
 <main>
-<section id="loginView" class="login"><div class="login-card"><div class="logo big">PCBL</div><h1>PCBL Tournament</h1><p>Admin & scorer access</p><form id="loginForm"><input id="email" type="email" placeholder="Email" required><input id="password" type="password" placeholder="Password" required><button class="btn dark full">Sign in</button></form><button class="link" onclick="useDemo()">Continue with demo data</button><p id="loginMsg" class="error"></p></div></section>
+<section id="loginView" class="login"><div class="login-card">
+  <div class="logo big">PCBL</div><h1>PCBL Tournament</h1><p>Admin & scorer access</p>
+  <form id="loginForm"><input id="email" type="email" placeholder="Email" autocomplete="username" required><input id="password" type="password" placeholder="Password" autocomplete="current-password" required><button id="loginBtn" class="btn dark full">Sign in</button></form>
+  <button id="demoBtn" class="link">Continue with demo data</button><p id="loginMsg" class="error"></p>
+</div></section>
 <section id="mainView" class="hidden">
-<div class="hero"><div><span class="eyebrow">TOURNAMENT CONTROL</span><h1>PCBL Finals</h1><p>Team event management, lineups, courts and live scoring.</p></div><div class="heroBtns"><button class="btn dark" onclick="openMatchModal()">+ Add Match</button><button class="btn" onclick="show('live')">🔴 Live Courts</button></div></div>
-<nav><button data-page="dashboard" class="active" onclick="show('dashboard')">Dashboard</button><button data-page="teams" onclick="show('teams')">Teams & Players</button><button data-page="fixtures" onclick="show('fixtures')">Fixtures</button><button data-page="live" onclick="show('live')">Live Scoring</button><button data-page="rules" onclick="show('rules')">PCBL Rules</button></nav>
-<div id="dashboard" class="page"><div id="stats" class="stats"></div><div class="two"><div class="card"><div class="cardhead"><h2>Team Standings</h2></div><div id="standings"></div></div><div class="card"><div class="cardhead"><h2>Schedule</h2></div><div id="schedule"></div></div></div></div>
-<div id="teams" class="page hidden"><div class="two"><div class="card"><h2>Add Team</h2><form id="teamForm"><input id="teamName" placeholder="Team name" required><input id="captain" placeholder="Captain"><button class="btn dark full">Add Team</button></form></div><div class="card"><h2>Add Player</h2><form id="playerForm"><select id="playerTeam"></select><input id="playerName" placeholder="Player name" required><select id="gender"><option value="M">Male</option><option value="F">Female</option></select><button class="btn dark full">Add Player</button></form></div></div><div id="teamCards" class="teamgrid"></div></div>
-<div id="fixtures" class="page hidden"><div class="card"><div class="cardhead"><h2>Fixtures</h2><button class="btn dark small" onclick="openMatchModal()">+ Match</button></div><div class="tablewrap"><table><thead><tr><th>Time</th><th>Court</th><th>Type</th><th>Team A</th><th>Team B</th><th>Lineup</th><th>Status</th><th></th></tr></thead><tbody id="fixturesBody"></tbody></table></div></div></div>
-<div id="live" class="page hidden"><div id="liveGrid" class="livegrid"></div></div>
-<div id="rules" class="page hidden"><div class="card"><h2>PCBL Rules</h2><div class="rule"><b>Unlimited roster</b><p>Add any number of players to each team.</p></div><div class="rule"><b>Team event</b><p>Each fixture is a badminton match contributing one win to the team-vs-team tie.</p></div><div class="rule"><b>Match types</b><p>Men's Singles, Women's Singles, Men's Doubles, Women's Doubles and Mixed Doubles.</p></div><div class="rule"><b>Women’s Doubles scheduling</b><p>The schedule can place Women’s Doubles in the first 10-minute slot.</p></div><div class="rule"><b>Player uniqueness</b><p>Matches 2, 3 and 4 can be validated against earlier lineups before a match starts.</p></div><div class="rule"><b>Scoring</b><p>Best of 3 games, 21 points; at 20-all continue until a 2-point lead, capped at 30.</p></div></div></div>
-</section></main></div>
+  <div class="hero"><div><span class="eyebrow">TOURNAMENT CONTROL</span><h1 id="tournamentTitle">PCBL Finals</h1><p>Teams, unlimited rosters, fixtures, lineups and live scoring.</p></div><div class="heroBtns"><button id="addMatchBtn" class="btn dark">+ Add Match</button><button class="btn" data-page="live">🔴 Live Courts</button></div></div>
+  <nav><button data-page="dashboard" class="active">Dashboard</button><button data-page="teams">Teams & Players</button><button data-page="fixtures">Fixtures</button><button data-page="live">Live Scoring</button><button data-page="rules">PCBL Rules</button></nav>
+  <div id="dashboard" class="page"><div id="stats" class="stats"></div><div class="two"><div class="card"><div class="cardhead"><h2>Team Standings</h2></div><div id="standings"></div></div><div class="card"><div class="cardhead"><h2>Schedule</h2></div><div id="schedule"></div></div></div></div>
+  <div id="teams" class="page hidden"><div class="two"><div class="card"><h2>Add Team</h2><form id="teamForm"><input id="teamName" placeholder="Team name" required><input id="captain" placeholder="Captain"><button class="btn dark full">Add Team</button></form></div><div class="card"><h2>Add Player</h2><form id="playerForm"><select id="playerTeam" required></select><input id="playerName" placeholder="Player name" required><select id="gender"><option value="M">Male</option><option value="F">Female</option></select><button class="btn dark full">Add Player</button></form></div></div><div id="teamCards" class="teamgrid"></div></div>
+  <div id="fixtures" class="page hidden"><div class="card"><div class="cardhead"><h2>Fixtures</h2><button id="addMatchBtn2" class="btn dark small">+ Match</button></div><div class="tablewrap"><table><thead><tr><th>Time</th><th>Court</th><th>Type</th><th>Team A</th><th>Team B</th><th>Lineup</th><th>Status</th><th></th></tr></thead><tbody id="fixturesBody"></tbody></table></div></div></div>
+  <div id="live" class="page hidden"><div class="livebar"><div><b>Live scoring</b><span class="muted"> Changes update automatically.</span></div><a class="btn" href="live.html" target="_blank">Open public screen</a></div><div id="liveGrid" class="livegrid"></div></div>
+  <div id="rules" class="page hidden"><div class="card"><h2>PCBL Rules</h2><div class="rule"><b>Unlimited roster</b><p>Add any number of players to each team.</p></div><div class="rule"><b>Match types</b><p>Men's Singles, Women's Singles, Men's Doubles, Women's Doubles and Mixed Doubles.</p></div><div class="rule"><b>Lineup validation</b><p>Singles require 1 player; doubles require 2. Gender combinations are checked for the selected match type.</p></div><div class="rule"><b>Scoring</b><p>Best of 3 games, 21 points. At 20-all, continue until a 2-point lead, capped at 30.</p></div><div class="rule"><b>Player rotation</b><p>The system warns when the same player is selected repeatedly in a fixture sequence; final PCBL rotation rules can be tightened once your exact event format is supplied.</p></div></div></div>
+</section></main>
 <div id="modal" class="modal hidden"><div id="modalBox" class="modalbox"></div></div>
 <script src="config.js"></script><script src="app.js"></script>
 </body></html>
