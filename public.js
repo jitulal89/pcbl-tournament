@@ -77,6 +77,7 @@
     const bad=[tx,tt,pp,mm,mp,gg].find(r=>r.error);
     if (bad) { $('connection').textContent='ERROR'; $('connection').className='badge'; document.querySelector('main').insertAdjacentHTML('beforeend',`<div class="card" style="margin-top:20px"><b>Unable to load tournament data.</b><p class="muted">${esc(bad.error.message)}</p></div>`); return; }
     tournament=tx.data; teams=tt.data||[]; players=pp.data||[]; matches=mm.data||[]; matchPlayers=mp.data||[]; games=gg.data||[];
+    teams=teams.map(t => ({...t, players: players.filter(p => p.team_id === t.id)}));
     $('connection').textContent='LIVE'; $('connection').className='badge ok'; render();
   }
   if (!window.supabase || !cfg.SUPABASE_URL || !cfg.SUPABASE_PUBLISHABLE_KEY) { $('connection').textContent='CONFIG ERROR'; }
