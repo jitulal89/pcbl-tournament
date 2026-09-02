@@ -32,9 +32,21 @@
   }
 
   function matchWinner(m){
-    let a=0,b=0;
-    for(const s of m.sets||[]){ if(isGameComplete(s[0],s[1])) s[0]>s[1]?a++:s[1]>s[0]?b++:0; }
-    return a>b?m.a:b>a?m.b:null;
+    // A completed PCBL match awards exactly one match win.
+    // Prefer games won (normal badminton result). If the scorer uses
+    // Finish before a game reaches 21, fall back to the final/current
+    // game score so the higher-scoring team still gets the win.
+    const [gwA,gwB]=gameWins(m);
+    if(gwA!==gwB) return gwA>gwB?m.a:m.b;
+
+    const scores=m.sets||[];
+    const current=scores[m.game||0]||[0,0];
+    if(current[0]!==current[1]) return current[0]>current[1]?m.a:m.b;
+
+    let totalA=0,totalB=0;
+    for(const s of scores){ totalA+=Number(s?.[0]||0); totalB+=Number(s?.[1]||0); }
+    if(totalA!==totalB) return totalA>totalB?m.a:m.b;
+    return null;
   }
   function isGameComplete(a,b){ return (Math.max(a,b)>=21 && Math.abs(a-b)>=2) || Math.max(a,b)>=30; }
   function gameWins(m){
@@ -96,8 +108,26 @@
     } else { const m=state.matches.find(x=>x.id===id); if(m){m.status='live';render();show('live');} }
   }
   async function finish(id){
-    if(state.mode==='cloud'){const {error}=await sb.from('matches').update({status:'done'}).eq('id',id); if(error) alert(error.message); else await loadCloud();}
-    else {const m=state.matches.find(x=>x.id===id);if(m){m.status='done';render();}}
+    const m=state.matches.find(x=>x.id===id);
+    if(!m) return;
+
+    const winner=matchWinner(m);
+    if(!winner){
+      alert('Cannot finish a tied match. Please add a point or correct the score first.');
+      return;
+    }
+
+    if(state.mode==='cloud'){
+      const gameNo=(m.game||0)+1;
+      // Mark the currently displayed game complete for a clean audit trail.
+      await sb.from('games').update({completed:true}).eq('match_id',id).eq('game_no',gameNo);
+      const {error}=await sb.from('matches').update({status:'done'}).eq('id',id);
+      if(error) alert(error.message);
+      else await loadCloud();
+    } else {
+      m.status='done';
+      render();
+    }
   }
   async function ensureGame(matchId,gameNo){const {error}=await sb.from('games').upsert({match_id:matchId,game_no:gameNo},{onConflict:'match_id,game_no'});if(error)console.error(error);}
 
