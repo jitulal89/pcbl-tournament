@@ -1,122 +1,133 @@
--- PCBL Tournament Hub: production Supabase schema
+-- PCBL Tournament Manager - Supabase schema
 create extension if not exists pgcrypto;
 
-create table if not exists public.tournaments (
+create table if not exists tournaments (
   id uuid primary key default gen_random_uuid(),
   name text not null,
-  timezone text not null default 'Asia/Kolkata',
-  format text not null default 'round_robin',
-  match_duration_minutes integer not null default 60 check (match_duration_minutes > 0),
-  qualification_rule text not null default 'Top 2 qualify',
-  final_start timestamptz,
-  prize_distribution_at timestamptz,
+  venue text,
+  start_date date,
+  end_date date,
+  status text not null default 'draft',
   created_at timestamptz not null default now()
 );
 
-create table if not exists public.profiles (
-  id uuid primary key references auth.users(id) on delete cascade,
-  display_name text,
-  role text not null default 'public' check (role in ('admin','scorekeeper','captain','public')),
-  created_at timestamptz not null default now()
-);
-
-create table if not exists public.teams (
+create table if not exists teams (
   id uuid primary key default gen_random_uuid(),
-  tournament_id uuid not null references public.tournaments(id) on delete cascade,
-  code text not null,
+  tournament_id uuid not null references tournaments(id) on delete cascade,
   name text not null,
-  captain_name text,
-  unique(tournament_id, code)
+  captain text,
+  created_at timestamptz not null default now(),
+  unique(tournament_id,name)
 );
 
-create table if not exists public.players (
+create table if not exists players (
   id uuid primary key default gen_random_uuid(),
-  team_id uuid not null references public.teams(id) on delete cascade,
-  full_name text not null,
-  email text,
-  phone text,
-  active boolean not null default true,
+  team_id uuid not null references teams(id) on delete cascade,
+  name text not null,
+  gender text not null check(gender in ('M','F')),
   created_at timestamptz not null default now()
 );
 
-create table if not exists public.matches (
+create table if not exists matches (
   id uuid primary key default gen_random_uuid(),
-  tournament_id uuid not null references public.tournaments(id) on delete cascade,
-  match_day text not null check (match_day in ('Saturday','Sunday')),
-  start_time text not null,
-  end_time text not null,
-  team1_id uuid references public.teams(id),
-  team2_id uuid references public.teams(id),
-  match_type text not null default 'league' check (match_type in ('league','backup','final')),
-  status text not null default 'scheduled' check (status in ('scheduled','live','completed','backup')),
-  score1 integer not null default 0 check (score1 >= 0),
-  score2 integer not null default 0 check (score2 >= 0),
+  tournament_id uuid not null references tournaments(id) on delete cascade,
+  match_no integer,
+  scheduled_at timestamptz,
   court text,
-  updated_at timestamptz not null default now(),
-  check ((match_type = 'backup' and team1_id is null and team2_id is null) or match_type <> 'backup')
-);
-
-create table if not exists public.score_events (
-  id bigint generated always as identity primary key,
-  match_id uuid not null references public.matches(id) on delete cascade,
-  actor_id uuid references auth.users(id),
-  score1 integer not null check (score1 >= 0),
-  score2 integer not null check (score2 >= 0),
-  status text not null check (status in ('scheduled','live','completed')),
-  note text,
+  match_type text not null,
+  team_a uuid not null references teams(id),
+  team_b uuid not null references teams(id),
+  status text not null default 'upcoming' check(status in ('upcoming','live','done','cancelled')),
+  current_game integer not null default 1 check(current_game between 1 and 3),
   created_at timestamptz not null default now()
 );
 
-create index if not exists idx_matches_tournament on public.matches(tournament_id, match_day);
-create index if not exists idx_score_events_match on public.score_events(match_id, created_at desc);
+create table if not exists match_players (
+  match_id uuid not null references matches(id) on delete cascade,
+  player_id uuid not null references players(id),
+  side text not null check(side in ('A','B')),
+  primary key(match_id,player_id)
+);
 
-create or replace function public.is_staff()
-returns boolean language sql stable security definer set search_path = public
-as $$ select coalesce((select role in ('admin','scorekeeper') from public.profiles where id = auth.uid()), false); $$;
+create table if not exists games (
+  id uuid primary key default gen_random_uuid(),
+  match_id uuid not null references matches(id) on delete cascade,
+  game_no integer not null check(game_no between 1 and 3),
+  score_a integer not null default 0,
+  score_b integer not null default 0,
+  completed boolean not null default false,
+  unique(match_id,game_no)
+);
 
-create or replace function public.is_admin()
-returns boolean language sql stable security definer set search_path = public
-as $$ select coalesce((select role = 'admin' from public.profiles where id = auth.uid()), false); $$;
+create table if not exists score_events (
+  id bigint generated always as identity primary key,
+  match_id uuid not null references matches(id) on delete cascade,
+  game_no integer not null,
+  side text not null check(side in ('A','B')),
+  created_at timestamptz not null default now()
+);
 
-create or replace function public.touch_match()
-returns trigger language plpgsql as $$ begin new.updated_at = now(); return new; end; $$;
-drop trigger if exists trg_touch_match on public.matches;
-create trigger trg_touch_match before update on public.matches for each row execute procedure public.touch_match();
+create index if not exists matches_tournament_idx on matches(tournament_id);
+create index if not exists players_team_idx on players(team_id);
+create index if not exists games_match_idx on games(match_id);
 
--- Atomic live score publish + immutable score history
-create or replace function public.publish_score(p_match uuid, p_score1 integer, p_score2 integer, p_status text, p_note text default null)
-returns public.matches language plpgsql security definer set search_path = public as $$
-declare result public.matches;
+-- Enable RLS
+alter table tournaments enable row level security;
+alter table teams enable row level security;
+alter table players enable row level security;
+alter table matches enable row level security;
+alter table match_players enable row level security;
+alter table games enable row level security;
+alter table score_events enable row level security;
+
+-- Public read: required for spectator live-score pages.
+create policy "public read tournaments" on tournaments for select using (true);
+create policy "public read teams" on teams for select using (true);
+create policy "public read players" on players for select using (true);
+create policy "public read matches" on matches for select using (true);
+create policy "public read match_players" on match_players for select using (true);
+create policy "public read games" on games for select using (true);
+create policy "public read score_events" on score_events for select using (true);
+
+-- Authenticated users can manage tournament data.
+create policy "auth manage tournaments" on tournaments for all to authenticated using (true) with check (true);
+create policy "auth manage teams" on teams for all to authenticated using (true) with check (true);
+create policy "auth manage players" on players for all to authenticated using (true) with check (true);
+create policy "auth manage matches" on matches for all to authenticated using (true) with check (true);
+create policy "auth manage match_players" on match_players for all to authenticated using (true) with check (true);
+create policy "auth manage games" on games for all to authenticated using (true) with check (true);
+create policy "auth manage score_events" on score_events for all to authenticated using (true) with check (true);
+
+-- Atomic scoring function. This prevents two scorer taps from silently overwriting each other.
+create or replace function public.add_point(p_match uuid, p_side text)
+returns void
+language plpgsql
+security invoker
+as $$
+declare g integer; a integer; b integer; winner boolean;
 begin
-  if not public.is_staff() then raise exception 'Not authorized'; end if;
-  if p_score1 < 0 or p_score2 < 0 then raise exception 'Scores cannot be negative'; end if;
-  if p_status not in ('scheduled','live','completed') then raise exception 'Invalid status'; end if;
-  update public.matches set score1=p_score1, score2=p_score2, status=p_status where id=p_match and match_type <> 'backup' returning * into result;
-  if not found then raise exception 'Match not found'; end if;
-  insert into public.score_events(match_id,actor_id,score1,score2,status,note) values(p_match,auth.uid(),p_score1,p_score2,p_status,p_note);
-  return result;
+  select current_game into g from matches where id=p_match for update;
+  select score_a,score_b into a,b from games where match_id=p_match and game_no=g for update;
+  if p_side='A' then a:=a+1; else b:=b+1; end if;
+  update games set score_a=a, score_b=b where match_id=p_match and game_no=g;
+
+  winner := (greatest(a,b)>=21 and abs(a-b)>=2) or greatest(a,b)>=30;
+  if winner then
+    update games set completed=true where match_id=p_match and game_no=g;
+    if (select count(*) from games where match_id=p_match and completed=true and ((score_a>score_b and score_a>=21) or (score_b>score_a and score_b>=21))) >= 2 then
+      update matches set status='done' where id=p_match;
+    else
+      update matches set current_game=least(g+1,3) where id=p_match;
+      insert into games(match_id,game_no) values(p_match,least(g+1,3))
+      on conflict(match_id,game_no) do nothing;
+    end if;
+  end if;
+  insert into score_events(match_id,game_no,side) values(p_match,g,p_side);
 end $$;
 
-alter table public.tournaments enable row level security;
-alter table public.profiles enable row level security;
-alter table public.teams enable row level security;
-alter table public.players enable row level security;
-alter table public.matches enable row level security;
-alter table public.score_events enable row level security;
-
-drop policy if exists "public read tournaments" on public.tournaments;
-create policy "public read tournaments" on public.tournaments for select using (true);
-create policy "staff manage tournaments" on public.tournaments for all using (public.is_admin()) with check (public.is_admin());
-create policy "profile own read" on public.profiles for select using (id=auth.uid() or public.is_admin());
-create policy "profile own update" on public.profiles for update using (id=auth.uid() or public.is_admin()) with check (id=auth.uid() or public.is_admin());
-create policy "public read teams" on public.teams for select using (true);
-create policy "admin manage teams" on public.teams for all using (public.is_admin()) with check (public.is_admin());
-create policy "public read players" on public.players for select using (true);
-create policy "admin manage players" on public.players for all using (public.is_admin()) with check (public.is_admin());
-create policy "public read matches" on public.matches for select using (true);
-create policy "admin manage matches" on public.matches for all using (public.is_admin()) with check (public.is_admin());
-create policy "public read score events" on public.score_events for select using (true);
+grant execute on function public.add_point(uuid,text) to authenticated;
 
 -- Realtime
-alter publication supabase_realtime add table public.matches;
-alter publication supabase_realtime add table public.score_events;
+alter publication supabase_realtime add table matches;
+alter publication supabase_realtime add table games;
+alter publication supabase_realtime add table score_events;

@@ -1,2 +1,7 @@
-export const SUPABASE_URL = 'https://bfalondvpfijthberomf.supabase.co';
-export const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJmYWxvbmR2cGZpanRoYmVyb21mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc2ODAzNDgsImV4cCI6MjEwMzI1NjM0OH0.MZCmFjZXD5bM_JcaV5jbduBZV8f9hemfUs3jh2x1xBk';
+// Add your Supabase project values here.
+// Keep this file safe to publish: use the browser-safe publishable/anon key only.
+// Never put a service_role/secret key in this file.
+window.PCBL_CONFIG = {
+  SUPABASE_URL: "",
+  SUPABASE_PUBLISHABLE_KEY: ""
+};

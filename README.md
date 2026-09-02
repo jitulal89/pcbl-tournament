@@ -1,74 +1,39 @@
-# PCBL Tournament Hub — Supabase Live Backend
+# PCBL Tournament Manager — production-ready starter
 
-This version is wired for a real shared Supabase backend with:
+## What is included
+- Unlimited players per team
+- Team-vs-team fixtures
+- Men's/Women's Singles, Men's/Women's Doubles, Mixed Doubles
+- Live point-by-point scoring
+- Best-of-3, 21-point badminton scoring with deuce and 30 cap
+- Atomic Supabase scoring function
+- Realtime database publication for live courts
+- Public read / authenticated management policies
+- Team standings and schedule
+- PCBL-specific rules area
+- Mobile responsive UI
+- Demo mode without any backend
 
-- Supabase Auth using email magic links
-- Role-based access: `admin`, `scorekeeper`, `captain`, `public`
-- Central teams, players, matches and scores
-- Atomic score publishing through `publish_score()`
-- Immutable score-event history
-- Row Level Security policies
-- Supabase Realtime subscriptions for live score and standings updates
-- Finalized PCBL fixture, backup slots, Sunday final and prize distribution
+## Connect Supabase
+1. Create a Supabase project.
+2. Open SQL Editor and run `schema.sql`.
+3. In Supabase Authentication, create an admin/scorer user.
+4. Open Project Settings → API and copy the Project URL and browser-safe publishable/anon key.
+5. Put them in `config.js`.
+6. Open `index.html`, or deploy the folder to any static host.
 
-## Setup
+Supabase's browser client is supported through the official CDN and uses the project URL plus publishable/anon key. See the official Supabase JavaScript docs.
 
-### 1. Create a Supabase project
-Create a new project in Supabase.
+## Important security
+Never put a Supabase `service_role` or secret key in `config.js`. The browser should only receive the publishable/anon key. RLS remains enabled.
 
-### 2. Run the schema
-In **SQL Editor**, run:
-
-`supabase/schema.sql`
-
-### 3. Seed PCBL data
-Run:
-
-`supabase/seed.sql`
-
-This creates Teams A–F and the finalized schedule.
-
-### 4. Add your first Admin
-1. Open the deployed site and sign in with your email magic link.
-2. In Supabase SQL Editor, run:
-
-```sql
-update public.profiles
-set role='admin', display_name='Tournament Admin'
-where id='YOUR_AUTH_USER_UUID';
-```
-
-If no profile row exists yet, insert it:
-
-```sql
-insert into public.profiles(id, display_name, role)
-values ('YOUR_AUTH_USER_UUID','Tournament Admin','admin');
-```
-
-### 5. Configure the website
-Edit `web/config.js`:
-
-```js
-export const SUPABASE_URL = 'https://YOUR-PROJECT.supabase.co';
-export const SUPABASE_ANON_KEY = 'YOUR-ANON-KEY';
-```
-
-`config.js` is intentionally a separate file so you can replace it without touching application code. The anon key is safe for a browser client when RLS is correctly enabled. Never put the Supabase service-role key in the website.
-
-### 6. Configure Auth redirect URLs
-In Supabase Auth URL configuration, add your local and production website URLs as redirect URLs.
-
-### 7. Deploy
-Deploy the `web` folder to Vercel, Netlify, Cloudflare Pages or GitHub Pages.
-
-## Staff roles
-- **admin**: manage all tournament data
-- **scorekeeper**: publish live scores only through the protected RPC
-- **captain**: reserved for future team-management permissions
-- **public**: read-only live dashboard
-
-## Important production notes
-- The database is the source of truth; there is no localStorage scoring fallback.
-- Every published score creates a `score_events` history record.
-- Standings are recalculated client-side from completed league matches and update after Realtime events.
-- Backup slots cannot receive scores through the RPC.
+## Production extensions
+- Admin/scorer role table and tighter RLS
+- Tournament creation UI
+- QR spectator URL
+- Player uniqueness rule enforcement at lineup save
+- Automatic PCBL schedule generation
+- Finals/bracket page
+- Match reports/export
+- PCBL logo upload
+- PWA/offline scorer mode
