@@ -57,6 +57,15 @@
     return s[0]>s[1]?m.a:m.b;
   }
   function currentScore(m){ return m.sets?.[0] || [0,0]; }
+  function getLeagueTopTwo(){
+    const leagueMatches = state.matches.filter(m => !isFinal(m));
+    const standings = state.teams.map(t => ({
+      team: t,
+      points: leagueMatches.filter(m => m.status === 'done' && matchWinner(m) === t.id).length,
+      played: leagueMatches.filter(m => m.status === 'done' && (m.a === t.id || m.b === t.id)).length
+    })).sort((x,y) => y.points - x.points || y.played - x.played || x.team.name.localeCompare(y.team.name));
+    return standings.slice(0,2);
+  }
 
   function fixtureResultForTeam(m, teamId){
     if(m.status!=='done') return m.status==='live'?'LIVE':'UPCOMING';
@@ -435,12 +444,25 @@
 
   function openMatchModal(){
     if(state.teams.length<2){alert('Add at least two teams first.');return;}
+    const leagueTopTwo=getLeagueTopTwo();
     const opts=state.teams.map(t=>`<option value="${esc(t.id)}">${esc(t.name)}</option>`).join('');
-    $('modalBox').innerHTML=`<h2>Add PCBL Match</h2><div class="two"><input id="mtTime" placeholder="Time e.g. 7:30"><input id="mtCourt" placeholder="Court 1"><select id="mtStage"><option value="league">League Stage</option><option value="finals">Finals</option></select><select id="mtFinalNo" class="hidden"><option value="">Finals Match #</option><option value="1">1 — Women’s Doubles · 15</option><option value="2">2 — Men’s Quadruple · 60</option><option value="3">3 — Men’s Singles · 15</option><option value="4">4 — Men’s Quadruple · 60</option><option value="5">5 — Women’s Doubles · 15</option><option value="6">6 — Men’s Quadruple · 60</option></select><select id="mtType"><option value="Men's Singles">Men's Singles</option><option value="Women's Singles">Women's Singles</option><option value="Men's Doubles">Men's Doubles</option><option value="Men's Triplet">Men's Triplet — 30 Points</option><option value="Men's Quadruple">Men's Quadruple — 60 Points</option><option value="Women's Doubles">Women's Doubles</option><option value="Mixed Doubles">Mixed Doubles</option></select><select id="mtA">${opts}</select><select id="mtB">${opts}</select></div><div class="lineup"><div><h3 id="lineATitle">Team A lineup</h3><div id="lineA" class="checks"></div></div><div><h3 id="lineBTitle">Team B lineup</h3><div id="lineB" class="checks"></div></div></div><div id="lineMsg" class="warn"></div><div class="modal-actions"><button class="btn" id="cancelModal">Cancel</button><button class="btn dark" id="createMatchBtn">Create Match</button></div>`;
+    const finalOpts=leagueTopTwo.map(x=>`<option value="${esc(x.team.id)}">${esc(x.team.name)} (${x.points} league points)</option>`).join('');
+    $('modalBox').innerHTML=`<h2>Add PCBL Match</h2><div class="two"><input id="mtTime" placeholder="Time e.g. 7:30"><input id="mtCourt" placeholder="Court 1"><select id="mtStage"><option value="league">League Stage</option><option value="finals">Finals</option></select><select id="mtFinalNo" class="hidden"><option value="">Finals Match #</option><option value="1">1 — Women’s Doubles · 15</option><option value="2">2 — Men’s Quadruple · 60</option><option value="3">3 — Men’s Singles · 15</option><option value="4">4 — Men’s Quadruple · 60</option><option value="5">5 — Women’s Doubles · 15</option><option value="6">6 — Men’s Quadruple · 60</option></select><select id="mtType"><option value="Men's Singles">Men's Singles</option><option value="Women's Singles">Women's Singles</option><option value="Men's Doubles">Men's Doubles</option><option value="Men's Triplet">Men's Triplet — 30 Points</option><option value="Men's Quadruple">Men's Quadruple — 60 Points</option><option value="Women's Doubles">Women's Doubles</option><option value="Mixed Doubles">Mixed Doubles</option></select><select id="mtA" data-final-options="${esc(finalOpts)}">${opts}</select><select id="mtB" data-final-options="${esc(finalOpts)}">${opts}</select></div><div class="lineup"><div><h3 id="lineATitle">Team A lineup</h3><div id="lineA" class="checks"></div></div><div><h3 id="lineBTitle">Team B lineup</h3><div id="lineB" class="checks"></div></div></div><div id="lineMsg" class="warn"></div><div class="modal-actions"><button class="btn" id="cancelModal">Cancel</button><button class="btn dark" id="createMatchBtn">Create Match</button></div>`;
     $('modal').classList.remove('hidden');
     $('mtStage').addEventListener('change',()=>{
       const finals=$('mtStage').value==='finals'; $('mtFinalNo').classList.toggle('hidden',!finals);
-      if(finals){$('mtFinalNo').value='';$('mtType').disabled=true;} else {$('mtType').disabled=false;}
+      if(finals){
+        const topTwo=getLeagueTopTwo();
+        if(topTwo.length<2){alert('Finals require two teams from the League standings. Complete enough League matches to determine the top 2 teams.');$('mtStage').value='league';$('mtFinalNo').value='';$('mtFinalNo').classList.add('hidden');$('mtType').disabled=false;return;}
+        const finalOptions=topTwo.map(x=>`<option value="${esc(x.team.id)}">${esc(x.team.name)} (${x.points} league points)</option>`).join('');
+        $('mtA').innerHTML=finalOptions; $('mtB').innerHTML=finalOptions;
+        $('mtA').value=topTwo[0].team.id; $('mtB').value=topTwo[1].team.id;
+        $('mtFinalNo').value='';$('mtType').disabled=true;
+      } else {
+        $('mtA').innerHTML=opts; $('mtB').innerHTML=opts;
+        $('mtA').value=state.teams[0]?.id||''; $('mtB').value=state.teams[1]?.id||'';
+        $('mtType').disabled=false;
+      }
       populateLineups();
     });
     $('mtFinalNo').addEventListener('change',()=>{ const n=Number($('mtFinalNo').value); if(n) $('mtType').value=finalMatchType(n); populateLineups(); });
@@ -452,6 +474,11 @@
   async function createMatch(){
     const a=$('mtA').value,b=$('mtB').value,type=$('mtType').value,stage=$('mtStage')?.value||'league',finalNo=stage==='finals'?Number($('mtFinalNo').value):null;
     if(a===b){alert('Choose different teams.');return;}
+    if(stage==='finals'){
+      const topTwo=getLeagueTopTwo().map(x=>x.team.id);
+      if(topTwo.length<2){alert('Finals require two teams from the League standings.');return;}
+      if(!topTwo.includes(a)||!topTwo.includes(b)){alert('Finals can only be played between the top 2 teams from the League standings.');return;}
+    }
     if(stage==='finals' && !finalNo){alert('Select Finals Match 1–6.');return;}
     if(stage==='finals' && state.matches.some(m=>isFinal(m) && Number(m.final_no)===finalNo)){alert(`Finals Match ${finalNo} already exists. Each Finals Match 1–6 can be created only once.`);return;}
     const effectiveType=stage==='finals'?finalMatchType(finalNo):type;
