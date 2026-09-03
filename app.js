@@ -31,28 +31,40 @@
     render();
   }
 
+  function isMatchComplete(m,a,b){
+    if(m?.type === "Men's Triplet") return Math.max(a,b) >= 30;
+    return (Math.max(a,b)>=21 && Math.abs(a-b)>=2) || Math.max(a,b)>=30;
+  }
   function matchWinner(m){
-    // A completed PCBL match awards exactly one match win.
-    // Prefer games won (normal badminton result). If the scorer uses
-    // Finish before a game reaches 21, fall back to the final/current
-    // game score so the higher-scoring team still gets the win.
-    const [gwA,gwB]=gameWins(m);
-    if(gwA!==gwB) return gwA>gwB?m.a:m.b;
-
-    const scores=m.sets||[];
-    const current=scores[m.game||0]||[0,0];
-    if(current[0]!==current[1]) return current[0]>current[1]?m.a:m.b;
-
-    let totalA=0,totalB=0;
-    for(const s of scores){ totalA+=Number(s?.[0]||0); totalB+=Number(s?.[1]||0); }
-    if(totalA!==totalB) return totalA>totalB?m.a:m.b;
-    return null;
+    const s=currentScore(m);
+    if(s[0]===s[1]) return null;
+    if(!isMatchComplete(m,s[0],s[1])) return null;
+    return s[0]>s[1]?m.a:m.b;
   }
-  function isGameComplete(a,b){ return (Math.max(a,b)>=21 && Math.abs(a-b)>=2) || Math.max(a,b)>=30; }
+  function currentScore(m){ return m.sets?.[0] || [0,0]; }
+  function isTriplet(m){ return m?.type === "Men's Triplet"; }
+  function tripletPhase(m){
+    const s=currentScore(m), total=Number(s[0]||0)+Number(s[1]||0);
+    return total < 15 ? 1 : 2;
+  }
+  function lineupNames(m, side){
+    const ids=side==='A'?(m.ap||[]):(m.bp||[]);
+    if(!isTriplet(m) || ids.length<3) return ids.map(id=>player(id)?.name||'').filter(Boolean).join(' & ');
+    const active=tripletPhase(m)===1 ? [ids[0],ids[1]] : [ids[1],ids[2]];
+    return active.map(id=>player(id)?.name||'').filter(Boolean).join(' & ');
+  }
+  function tripletRoleNames(m,side){
+    const ids=side==='A'?(m.ap||[]):(m.bp||[]);
+    return {
+      out: player(ids[0])?.name || '—',
+      common: player(ids[1])?.name || '—',
+      in: player(ids[2])?.name || '—'
+    };
+  }
   function gameWins(m){
-    let a=0,b=0; for(const s of m.sets||[]){ if(isGameComplete(s[0],s[1])) s[0]>s[1]?a++:s[1]>s[0]?b++:0; } return [a,b];
+    const s=currentScore(m);
+    return isMatchComplete(m,s[0],s[1]) ? (s[0]>s[1]?[1,0]:s[1]>s[0]?[0,1]:[0,0]) : [0,0];
   }
-  function currentScore(m){ return m.sets[m.game||0] || [0,0]; }
 
   function render(){
     if(!$('stats')) return;
@@ -76,14 +88,23 @@
   }
 
   function courtHtml(m){
-    const a=team(m.a), b=team(m.b), s=currentScore(m), [ga,gb]=gameWins(m);
-    return `<div class="court"><div class="courthead"><div><b>Court ${esc(m.court||'—')}</b><div class="muted">${esc(m.type)} · ${esc(m.time||'')}</div></div><span class="livepill">● LIVE</span></div><div class="scoreteams"><div class="side"><div class="names"><b>${esc(a?.name||'—')}</b><br><small>${(m.ap||[]).map(id=>esc(player(id)?.name||'')).join(' & ')}</small></div><button class="scorebtn" data-point="${m.id}:A">${s[0]}</button></div><div class="center"><strong>–</strong><div class="games">Games ${ga} : ${gb}</div></div><div class="side"><div class="names"><b>${esc(b?.name||'—')}</b><br><small>${(m.bp||[]).map(id=>esc(player(id)?.name||'')).join(' & ')}</small></div><button class="scorebtn" data-point="${m.id}:B">${s[1]}</button></div></div><div class="courtActions"><button class="btn" data-undo="${m.id}">↶ Undo</button><button class="btn" data-finish="${m.id}">Finish</button></div></div>`;
+    const a=team(m.a), b=team(m.b), s=currentScore(m);
+    const trip=isTriplet(m), phase=trip?tripletPhase(m):null;
+    let tripletBanner='';
+    if(trip){
+      const ar=tripletRoleNames(m,'A'), br=tripletRoleNames(m,'B');
+      const aPair=phase===1?`${ar.out} + ${ar.common}`:`${ar.common} + ${ar.in}`;
+      const bPair=phase===1?`${br.out} + ${br.common}`:`${br.common} + ${br.in}`;
+      tripletBanner=`<div class="tripletPanel"><div><b>${esc(a?.name||'—')}</b><small>OUT: ${esc(ar.out)} · COMMON: ${esc(ar.common)} · IN: ${esc(ar.in)}</small></div><div class="tripletFlow"><b>PHASE ${phase}</b><span>${phase===1?esc(aPair)+' vs '+esc(bPair):esc(aPair)+' vs '+esc(bPair)}</span><small>${phase===1?'First 15 rally points':'Next 15 rally points'}</small></div><div><b>${esc(b?.name||'—')}</b><small>OUT: ${esc(br.out)} · COMMON: ${esc(br.common)} · IN: ${esc(br.in)}</small></div></div>`;
+    }
+    const phaseText=trip ? `<div class="tripletPhase"><b>TRIPLET · PHASE ${phase}</b><span>${phase===1?'First 15 rally points':'Next 15 rally points'}</span><small>${phase===1?'1st OUT + 2nd COMMON':'2nd COMMON + 3rd IN'}</small></div>` : `<div class="games">1 SET · 21 POINTS</div>`;
+    const total=s[0]+s[1];
+    return `<div class="court"><div class="courthead"><div><b>Court ${esc(m.court||'—')}</b><div class="muted">${esc(m.type)} · ${esc(m.time||'')}</div></div><span class="livepill">● LIVE</span></div>${tripletBanner}<div class="scoreteams"><div class="side"><div class="names"><b>${esc(a?.name||'—')}</b><br><small>${esc(lineupNames(m,'A'))}</small></div><button class="scorebtn" data-point="${m.id}:A">${s[0]}</button></div><div class="center"><strong>–</strong>${phaseText}${trip&&total>=15?'<div class="courtNotice">🔄 Player change completed at 15 total rally points</div>':''}${Math.max(s[0],s[1])>=11?'<div class="courtNotice">🔄 Ends changed at 11 points</div>':''}</div><div class="side"><div class="names"><b>${esc(b?.name||'—')}</b><br><small>${esc(lineupNames(m,'B'))}</small></div><button class="scorebtn" data-point="${m.id}:B">${s[1]}</button></div></div><div class="courtActions"><button class="btn" data-undo="${m.id}">↶ Undo</button><button class="btn" data-finish="${m.id}">Finish</button></div></div>`;
   }
 
   function advanceDemo(m){
-    const s=currentScore(m); if(!isGameComplete(s[0],s[1])) return;
-    const [a,b]=gameWins(m); if(a>=2||b>=2){m.status='done'; return;}
-    m.game=Math.min((m.game||0)+1,2);
+    const s=currentScore(m);
+    if(isMatchComplete(m,s[0],s[1])) m.status='done';
   }
 
   async function cloudPoint(id,side){
@@ -94,8 +115,7 @@
     if(state.mode==='cloud') return cloudPoint(id,side);
     const m=state.matches.find(x=>x.id===id); if(!m||m.status!=='live') return;
     m.history=m.history||[]; m.history.push({sets:JSON.parse(JSON.stringify(m.sets)),game:m.game,status:m.status});
-    m.sets[m.game||0][side==='A'?0:1]++;
-    advanceDemo(m); render();
+    const idx=side==='A'?0:1; const current=currentScore(m); if(isMatchComplete(m,current[0],current[1])) return; m.sets[0][idx]++; advanceDemo(m); render();
   }
   async function cloudUndo(id){
     if(!sb) return;
@@ -124,10 +144,8 @@
     }
 
     if(state.mode==='cloud'){
-      const gameNo=(m.game||0)+1;
-      // Mark the currently displayed game complete for a clean audit trail.
-      await sb.from('games').update({completed:true}).eq('match_id',id).eq('game_no',gameNo);
-      const {error}=await sb.from('matches').update({status:'done'}).eq('id',id);
+      await sb.from('games').update({completed:true}).eq('match_id',id).eq('game_no',1);
+      const {error}=await sb.from('matches').update({status:'done',current_game:1}).eq('id',id);
       if(error) alert(error.message);
       else await loadCloud();
     } else {
@@ -138,16 +156,27 @@
   async function ensureGame(matchId,gameNo){const {error}=await sb.from('games').upsert({match_id:matchId,game_no:gameNo},{onConflict:'match_id,game_no'});if(error)console.error(error);}
 
   function validateLineup(type, ids, teamId){
-    const ps=ids.map(player).filter(Boolean); const need=type.includes('Singles')?1:2;
+    const ps=ids.map(player).filter(Boolean);
+    const need=type === "Men's Triplet" ? 3 : (type.includes('Singles')?1:2);
     if(ps.length!==need) return `Select exactly ${need} player${need>1?'s':''} for ${team(teamId)?.name||'the team'}.`;
-    if(type==="Men's Singles"||type==="Men's Doubles"){if(ps.some(p=>p.gender!=='M')) return "Men's match requires male players.";}
+    if(new Set(ids).size!==ids.length) return 'A player cannot occupy two Triplet positions.';
+    if(type==="Men's Singles"||type==="Men's Doubles"||type==="Men's Triplet"){if(ps.some(p=>p.gender!=='M')) return "Men's match requires male players.";}
     if(type==="Women's Singles"||type==="Women's Doubles"){if(ps.some(p=>p.gender!=='F')) return "Women's match requires female players.";}
     if(type==='Mixed Doubles' && !(ps.some(p=>p.gender==='M')&&ps.some(p=>p.gender==='F'))) return 'Mixed Doubles requires one male and one female player.';
     return '';
   }
 
+  function tripletSelect(teamObj,side){
+    const opts=(teamObj?.players||[]).map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('');
+    return `<div class="triplet-selects"><label>1st — OUT<select data-triplet="${side}-0"><option value="">Select player</option>${opts}</select></label><label>2nd — COMMON<select data-triplet="${side}-1"><option value="">Select player</option>${opts}</select></label><label>3rd — IN<select data-triplet="${side}-2"><option value="">Select player</option>${opts}</select></label></div>`;
+  }
   function populateLineups(){
     const A=team($('mtA').value), B=team($('mtB').value), type=$('mtType').value;
+    if(type === "Men's Triplet") {
+      $('lineA').innerHTML=tripletSelect(A,'A'); $('lineB').innerHTML=tripletSelect(B,'B');
+      $('lineMsg').textContent='Triplet: select 3 men in order — 1st OUT, 2nd COMMON (plays all 30), 3rd IN.';
+      return;
+    }
     $('lineA').innerHTML=(A?.players||[]).map(p=>`<label><input type="checkbox" value="${p.id}" data-line="A">${esc(p.name)} (${p.gender})</label>`).join('');
     $('lineB').innerHTML=(B?.players||[]).map(p=>`<label><input type="checkbox" value="${p.id}" data-line="B">${esc(p.name)} (${p.gender})</label>`).join('');
     $('lineMsg').textContent=`${type}: ${type.includes('Singles')?'1 player':'2 players'} per side.`;
@@ -156,7 +185,7 @@
   function openMatchModal(){
     if(state.teams.length<2){alert('Add at least two teams first.');return;}
     const opts=state.teams.map(t=>`<option value="${esc(t.id)}">${esc(t.name)}</option>`).join('');
-    $('modalBox').innerHTML=`<h2>Add PCBL Match</h2><div class="two"><input id="mtTime" placeholder="Time e.g. 7:30"><input id="mtCourt" placeholder="Court 1"><select id="mtType"><option>Men's Singles</option><option>Women's Singles</option><option>Men's Doubles</option><option>Women's Doubles</option><option>Mixed Doubles</option></select><select id="mtA">${opts}</select><select id="mtB">${opts}</select></div><div class="lineup"><div><h3>Team A lineup</h3><div id="lineA" class="checks"></div></div><div><h3>Team B lineup</h3><div id="lineB" class="checks"></div></div></div><div id="lineMsg" class="warn"></div><div class="modal-actions"><button class="btn" id="cancelModal">Cancel</button><button class="btn dark" id="createMatchBtn">Create Match</button></div>`;
+    $('modalBox').innerHTML=`<h2>Add PCBL Match</h2><div class="two"><input id="mtTime" placeholder="Time e.g. 7:30"><input id="mtCourt" placeholder="Court 1"><select id="mtType"><option value="Men's Singles">Men's Singles</option><option value="Women's Singles">Women's Singles</option><option value="Men's Doubles">Men's Doubles</option><option value="Men's Triplet">Men's Triplet — 30 Points</option><option value="Women's Doubles">Women's Doubles</option><option value="Mixed Doubles">Mixed Doubles</option></select><select id="mtA">${opts}</select><select id="mtB">${opts}</select></div><div class="lineup"><div><h3>Team A lineup</h3><div id="lineA" class="checks"></div></div><div><h3>Team B lineup</h3><div id="lineB" class="checks"></div></div></div><div id="lineMsg" class="warn"></div><div class="modal-actions"><button class="btn" id="cancelModal">Cancel</button><button class="btn dark" id="createMatchBtn">Create Match</button></div>`;
     $('modal').classList.remove('hidden'); $('mtA').addEventListener('change',populateLineups); $('mtB').addEventListener('change',populateLineups); $('mtType').addEventListener('change',populateLineups); $('cancelModal').onclick=closeModal; $('createMatchBtn').onclick=createMatch; populateLineups();
   }
   function closeModal(){$('modal').classList.add('hidden');}
@@ -164,7 +193,8 @@
   async function createMatch(){
     const a=$('mtA').value,b=$('mtB').value,type=$('mtType').value;
     if(a===b){alert('Choose different teams.');return;}
-    const ap=[...document.querySelectorAll('#lineA input:checked')].map(x=>x.value), bp=[...document.querySelectorAll('#lineB input:checked')].map(x=>x.value);
+    const ap=type === "Men's Triplet" ? [...document.querySelectorAll('#lineA select[data-triplet^=\"A-\"]')].map(x=>x.value).filter(Boolean) : [...document.querySelectorAll('#lineA input:checked')].map(x=>x.value);
+    const bp=type === "Men's Triplet" ? [...document.querySelectorAll('#lineB select[data-triplet^=\"B-\"]')].map(x=>x.value).filter(Boolean) : [...document.querySelectorAll('#lineB input:checked')].map(x=>x.value);
     const errA=validateLineup(type,ap,a), errB=validateLineup(type,bp,b); if(errA||errB){alert(errA||errB);return;}
     if(state.mode==='demo'){
       state.matches.push({id:'m'+Date.now(),time:$('mtTime').value,court:$('mtCourt').value,type,a,b,ap,bp,status:'upcoming',game:0,sets:[[0,0],[0,0],[0,0]],history:[]}); closeModal(); render(); return;
@@ -172,9 +202,9 @@
     const scheduled=$('mtTime').value ? `${state.tournament.start_date||new Date().toISOString().slice(0,10)}T${$('mtTime').value}:00` : null;
     const {data,error}=await sb.from('matches').insert({tournament_id:state.tournament.id,match_no:state.matches.length+1,scheduled_at:scheduled,court:$('mtCourt').value,match_type:type,team_a:a,team_b:b,status:'upcoming',current_game:1}).select().single();
     if(error){alert(error.message);return;}
-    const rows=[...ap.map(id=>({match_id:data.id,player_id:id,side:'A'})),...bp.map(id=>({match_id:data.id,player_id:id,side:'B'}))];
-    const {error:mpErr}=await sb.from('match_players').insert(rows); if(mpErr){alert(mpErr.message);return;}
-    await sb.from('games').insert({match_id:data.id,game_no:1}); closeModal(); await loadCloud();
+    const rows=[...ap.map((id,i)=>({match_id:data.id,player_id:id,side:'A',lineup_order:i+1})),...bp.map((id,i)=>({match_id:data.id,player_id:id,side:'B',lineup_order:i+1}))];
+    const {error:mpErr}=await sb.from('match_players').insert(rows); if(mpErr){await sb.from('matches').delete().eq('id',data.id); alert('Could not save the lineup. If this is a Triplet, run triplet_update.sql in Supabase first.\n\n'+mpErr.message); return;}
+    const {error:gameErr}=await sb.from('games').insert({match_id:data.id,game_no:1}); if(gameErr){await sb.from('match_players').delete().eq('match_id',data.id); await sb.from('matches').delete().eq('id',data.id); alert('Could not create the score record.\n\n'+gameErr.message); return;} closeModal(); await loadCloud();
   }
 
   async function addCloudTeam(name,captain){
@@ -198,7 +228,8 @@
     state.teams=(tt.data||[]).map(t=>({...t,players:(pp.data||[]).filter(p=>p.team_id===t.id)}));
     state.matches=(mm.data||[]).map(m=>{
       const gs=(gg.data||[]).filter(g=>g.match_id===m.id).sort((x,y)=>x.game_no-y.game_no);
-      return {...m,a:m.team_a,b:m.team_b,ap:(mp.data||[]).filter(x=>x.match_id===m.id&&x.side==='A').map(x=>x.player_id),bp:(mp.data||[]).filter(x=>x.match_id===m.id&&x.side==='B').map(x=>x.player_id),game:Math.max((m.current_game||1)-1,0),sets:[1,2,3].map(n=>{const g=gs.find(x=>x.game_no===n);return g?[g.score_a,g.score_b]:[0,0]}),history:[]};
+      const side=(s)=> (mp.data||[]).filter(x=>x.match_id===m.id&&x.side===s).sort((a,b)=>(a.lineup_order??999)-(b.lineup_order??999)).map(x=>x.player_id);
+      return {...m,a:m.team_a,b:m.team_b,ap:side('A'),bp:side('B'),game:0,sets:[1,2,3].map(n=>{const g=gs.find(x=>x.game_no===n);return g?[g.score_a,g.score_b]:[0,0]}),history:[]};
     });
     render();
   }
