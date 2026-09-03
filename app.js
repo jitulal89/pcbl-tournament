@@ -250,66 +250,65 @@
     const key=pairKey(pair[0],pair[1]);
     if(!key) return null;
 
-    // Women's Doubles is intentionally excluded.
-    const allowedTypes=["Men's Doubles","Mixed Doubles","Men's Triplet"];
+    // Women's Doubles is intentionally excluded from all pair-repeat checks.
+    const restrictedTypes=["Men's Doubles","Mixed Doubles","Men's Triplet"];
 
-    // In Demo mode, use the local state.
-    if(state.mode!=='cloud' || !sb){
-      for(const m of (state.matches||[])){
-        if(excludeMatchId && m.id===excludeMatchId) continue;
-        if(m.a!==teamId && m.b!==teamId) continue;
-        const matchType=m.type || m.match_type;
-        if(!allowedTypes.includes(matchType)) continue;
-        const existing=m.a===teamId ? (m.ap||[]) : (m.bp||[]);
-        const pairs=[];
-        if(matchType==="Men's Triplet" && existing.length>=3){
-          pairs.push([existing[0],existing[1]],[existing[1],existing[2]]);
-        }else if(existing.length===2){
-          pairs.push([existing[0],existing[1]]);
-        }
-        if(pairs.some(x=>pairKey(x[0],x[1])===key)) return m;
-      }
-      return null;
+    // Check the currently loaded fixtures first. This makes the rule work even
+    // if a newly created fixture has not appeared in the realtime refresh yet.
+    const localMatches = state.matches || [];
+    for(const m of localMatches){
+      if(excludeMatchId && m.id===excludeMatchId) continue;
+      if(m.a!==teamId && m.b!==teamId) continue;
+      const matchType=m.type || m.match_type;
+      if(!restrictedTypes.includes(matchType)) continue;
+      const existing=m.a===teamId ? (m.ap||[]) : (m.bp||[]);
+      const pairs = matchType === "Men's Triplet" && existing.length >= 3
+        ? [[existing[0],existing[1]],[existing[1],existing[2]]]
+        : existing.length >= 2 ? [[existing[0],existing[1]]] : [];
+      if(pairs.some(x=>pairKey(x[0],x[1])===key)) return m;
     }
 
+    // In Demo mode, local state is the complete source of truth.
+    if(state.mode!=='cloud' || !sb) return null;
+
+    // Query match_players directly for the two player IDs. Do not depend on
+    // match_type filtering in the match query; this avoids failures caused by
+    // stale/renamed type fields in the browser state.
     try{
-      const {data:matches,error:matchError}=await sb
-        .from('matches')
-        .select('id,match_no,match_type,team_a,team_b')
-        .eq('tournament_id',state.tournament.id)
-        .in('match_type',allowedTypes);
-      if(matchError) throw matchError;
-
-      const teamMatches=(matches||[]).filter(m=>m.team_a===teamId||m.team_b===teamId)
-        .filter(m=>!excludeMatchId || m.id!==excludeMatchId);
-      if(!teamMatches.length) return null;
-
-      const ids=teamMatches.map(m=>m.id);
-      const {data:mp,error:mpError}=await sb
+      const {data:rows,error}=await sb
         .from('match_players')
-        .select('match_id,player_id,side,lineup_order')
-        .in('match_id',ids);
-      if(mpError) throw mpError;
+        .select('match_id,player_id,side,lineup_order,matches!inner(id,match_no,match_type,team_a,team_b,tournament_id)')
+        .in('player_id',[pair[0],pair[1]])
+        .eq('matches.tournament_id',state.tournament.id);
+      if(error) throw error;
 
-      for(const m of teamMatches){
+      const byMatch={};
+      for(const r of (rows||[])){
+        const m=r.matches;
+        if(!m || (excludeMatchId && m.id===excludeMatchId)) continue;
+        if(m.team_a!==teamId && m.team_b!==teamId) continue;
+        if(!restrictedTypes.includes(m.match_type)) continue;
         const side=m.team_a===teamId?'A':'B';
-        const existing=(mp||[])
-          .filter(x=>x.match_id===m.id && x.side===side)
-          .sort((x,y)=>(x.lineup_order??999)-(y.lineup_order??999))
-          .map(x=>x.player_id);
+        if(r.side!==side) continue;
+        if(!byMatch[m.id]) byMatch[m.id]={match:m,players:[]};
+        byMatch[m.id].players.push(r);
+      }
 
-        const pairs=[];
-        if(m.match_type==="Men's Triplet" && existing.length>=3){
-          pairs.push([existing[0],existing[1]],[existing[1],existing[2]]);
-        }else if(existing.length===2){
-          pairs.push([existing[0],existing[1]]);
-        }
+      for(const entry of Object.values(byMatch)){
+        const m=entry.match;
+        const ids=entry.players
+          .sort((a,b)=>(a.lineup_order??999)-(b.lineup_order??999))
+          .map(r=>r.player_id);
+        const pairs=m.match_type === "Men's Triplet" && ids.length >= 3
+          ? [[ids[0],ids[1]],[ids[1],ids[2]]]
+          : ids.length >= 2 ? [[ids[0],ids[1]]] : [];
         if(pairs.some(x=>pairKey(x[0],x[1])===key)) return m;
       }
       return null;
     }catch(err){
       console.error('Pair uniqueness database check failed:',err);
-      throw new Error('Unable to verify the no-repeat-pair rule. Please try again.');
+      alert('Pair validation could not be completed. The match was NOT created.\n\n'+(err?.message||err));
+      throw err;
     }
   }
 
@@ -369,8 +368,14 @@
     const ap=type === "Men's Triplet" ? [...document.querySelectorAll('#lineA select[data-triplet^=\"A-\"]')].map(x=>x.value).filter(Boolean) : [...document.querySelectorAll('#lineA input:checked')].map(x=>x.value);
     const bp=type === "Men's Triplet" ? [...document.querySelectorAll('#lineB select[data-triplet^=\"B-\"]')].map(x=>x.value).filter(Boolean) : [...document.querySelectorAll('#lineB input:checked')].map(x=>x.value);
     const errA=validateLineup(type,ap,a), errB=validateLineup(type,bp,b); if(errA||errB){alert(errA||errB);return;}
-    const pairErrA=await validatePairUniqueness(ap,a,type), pairErrB=await validatePairUniqueness(bp,b,type);
-    if(pairErrA||pairErrB){alert(pairErrA||pairErrB);return;}
+    const createBtn=$('createMatchBtn');
+    if(createBtn) createBtn.disabled=true;
+    try {
+      const pairErrA=await validatePairUniqueness(ap,a,type), pairErrB=await validatePairUniqueness(bp,b,type);
+      if(pairErrA||pairErrB){alert(pairErrA||pairErrB);return;}
+    } finally {
+      if(createBtn) createBtn.disabled=false;
+    }
     if(state.mode==='demo'){
       state.matches.push({id:'m'+Date.now(),time:$('mtTime').value,court:$('mtCourt').value,type,a,b,ap,bp,status:'upcoming',game:0,sets:[[0,0],[0,0],[0,0]],history:[]}); closeModal(); render(); return;
     }
