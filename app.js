@@ -42,6 +42,39 @@
     return s[0]>s[1]?m.a:m.b;
   }
   function currentScore(m){ return m.sets?.[0] || [0,0]; }
+
+  function fixtureResultForTeam(m, teamId){
+    if(m.status!=='done') return m.status==='live'?'LIVE':'UPCOMING';
+    const w=matchWinner(m);
+    return w===teamId?'WON':w?'LOST':'DRAW';
+  }
+  function fixtureScore(m){
+    const s=currentScore(m);
+    return `${s[0]} - ${s[1]}`;
+  }
+  function adminTeamDetailHtml(t){
+    const ms=state.matches.filter(m=>m.a===t.id||m.b===t.id).sort((a,b)=>{
+      const ta=a.time||'', tb=b.time||'';
+      return ta.localeCompare(tb) || ((a.match_no||0)-(b.match_no||0));
+    });
+    const played=ms.filter(m=>m.status==='done');
+    const wins=played.filter(m=>matchWinner(m)===t.id).length;
+    const losses=played.filter(m=>matchWinner(m)&&matchWinner(m)!==t.id).length;
+    const fixtures=ms.map(m=>{
+      const isA=m.a===t.id, opp=team(isA?m.b:m.a), result=fixtureResultForTeam(m,t.id);
+      const score=fixtureScore(m);
+      const ap=(m.ap||[]).map(id=>player(id)?.name).filter(Boolean).join(' & ') || '—';
+      const bp=(m.bp||[]).map(id=>player(id)?.name).filter(Boolean).join(' & ') || '—';
+      return `<div class="team-fixture"><div class="fixture-main"><div><b>${esc(m.type)}</b><div class="muted">${esc(m.time||'—')} · Court ${esc(m.court||'—')}</div></div><span class="status ${result==='WON'?'done':result==='LOST'?'live':result.toLowerCase()}">${result}</span></div><div class="fixture-vs"><b>${esc(t.name)}</b><span>vs</span><b>${esc(opp?.name||'—')}</b><strong>${esc(score)}</strong></div><div class="fixture-players"><span>${esc(ap)}</span><span>·</span><span>${esc(bp)}</span></div></div>`;
+    }).join('') || '<p class="muted">No fixtures assigned to this team yet.</p>';
+    return `<div class="team-summary"><div><span>Players</span><b>${t.players.length}</b></div><div><span>Played</span><b>${played.length}</b></div><div><span>Wins</span><b>${wins}</b></div><div><span>Losses</span><b>${losses}</b></div></div><h3>Fixtures & Results</h3><div class="team-fixtures">${fixtures}</div>`;
+  }
+  function openAdminTeamDetails(id){
+    const t=team(id); if(!t) return;
+    $('modalBox').innerHTML=`<div class="modalhead"><h2>${esc(t.name)} — Fixtures & Results</h2><button class="btn" id="closeTeamDetail">Close</button></div>${adminTeamDetailHtml(t)}`;
+    $('modal').classList.remove('hidden');
+    $('closeTeamDetail').onclick=closeModal;
+  }
   function isTriplet(m){ return m?.type === "Men's Triplet"; }
   function tripletPhase(m){
     const s=currentScore(m), total=Number(s[0]||0)+Number(s[1]||0);
@@ -83,7 +116,13 @@
     }).join('') || '<tr><td colspan="8" class="muted">No fixtures yet.</td></tr>';
 
     $('liveGrid').innerHTML = state.matches.filter(m=>m.status==='live').map(courtHtml).join('') || '<div class="card"><b>No live matches.</b><p class="muted">Start a fixture from Fixtures.</p></div>';
-    $('standings').innerHTML = state.teams.map(t=>{ const wins=state.matches.filter(m=>m.status==='done'&&matchWinner(m)===t.id).length; return `<div class="player"><b>${esc(t.name)}</b><b>${wins} match win${wins===1?'':'s'}</b></div>`; }).join('') || '<p class="muted">No teams.</p>';
+    const standing = state.teams.map(t=>({
+      team:t,
+      wins:state.matches.filter(m=>m.status==='done'&&matchWinner(m)===t.id).length,
+      played:state.matches.filter(m=>m.status==='done'&&(m.a===t.id||m.b===t.id)).length,
+      fixtures:state.matches.filter(m=>m.a===t.id||m.b===t.id).length
+    })).sort((x,y)=>y.wins-x.wins || x.team.name.localeCompare(y.team.name));
+    $('standings').innerHTML = standing.map((x,i)=>`<button type="button" class="player standing-team" data-admin-team-details="${esc(x.team.id)}"><span><b>${i+1}. ${esc(x.team.name)}</b><small>${x.played} played · ${x.team.players.length} players</small></span><b>${x.wins} win${x.wins===1?'':'s'}</b></button>`).join('') || '<p class="muted">No teams.</p>';
     $('schedule').innerHTML = state.matches.slice().sort((a,b)=>(a.time||'').localeCompare(b.time||'')).map(m=>`<div class="player"><span><b>${esc(m.time||'—')}</b> · Court ${esc(m.court||'—')}<br>${esc(m.type)} · ${esc(team(m.a)?.name||'—')} vs ${esc(team(m.b)?.name||'—')}</span><span class="status ${m.status}">${esc(m.status)}</span></div>`).join('') || '<p class="muted">No matches.</p>';
   }
 
@@ -296,6 +335,8 @@
   $('teamForm').addEventListener('submit',async e=>{e.preventDefault();const name=$('teamName').value.trim(),cap=$('captain').value.trim();if(state.mode==='cloud')await addCloudTeam(name,cap);else{state.teams.push({id:'t'+Date.now(),name,captain:cap,players:[]});e.target.reset();render();}});
   $('playerForm').addEventListener('submit',async e=>{e.preventDefault();const tid=$('playerTeam').value,name=$('playerName').value.trim(),gender=$('gender').value;if(!tid){alert('Add a team first.');return;}if(state.mode==='cloud')await addCloudPlayer(tid,name,gender);else{team(tid).players.push({id:'p'+Date.now(),name,gender});e.target.reset();render();}});
   document.addEventListener('click',e=>{
+    const teamDetail=e.target.closest('[data-admin-team-details]'); if(teamDetail) openAdminTeamDetails(teamDetail.dataset.adminTeamDetails);
+    if(e.target.id==='modal') closeModal();
     const score=e.target.closest('[data-score]'); if(score) startMatch(score.dataset.score);
     const pt=e.target.closest('[data-point]'); if(pt){const [id,side]=pt.dataset.point.split(':');point(id,side);}
     const un=e.target.closest('[data-undo]'); if(un) undo(un.dataset.undo);
