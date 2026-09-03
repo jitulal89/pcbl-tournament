@@ -139,6 +139,59 @@ end $$;
 
 grant execute on function public.add_point(uuid,text) to authenticated;
 
+-- Undo the most recent scoring action for a live/completed match.
+-- The score event is the source of truth, so the exact last point is removed
+-- and the corresponding game is reopened if that point had ended the game.
+drop function if exists public.undo_last_point(uuid);
+create or replace function public.undo_last_point(p_match uuid)
+returns void language plpgsql security invoker as $$
+declare
+  ev_id bigint;
+  ev_game integer;
+  ev_side text;
+  new_a integer;
+  new_b integer;
+begin
+  select id, game_no, side
+    into ev_id, ev_game, ev_side
+  from public.score_events
+  where match_id=p_match
+  order by created_at desc, id desc
+  limit 1
+  for update;
+
+  if ev_id is null then
+    raise exception 'Nothing to undo for this match';
+  end if;
+
+  select score_a, score_b into new_a, new_b
+  from public.games
+  where match_id=p_match and game_no=ev_game
+  for update;
+
+  if new_a is null then
+    raise exception 'Score record not found for the last scoring event';
+  end if;
+
+  if ev_side='A' then
+    new_a := greatest(new_a-1,0);
+  else
+    new_b := greatest(new_b-1,0);
+  end if;
+
+  update public.games
+     set score_a=new_a, score_b=new_b, completed=false
+   where match_id=p_match and game_no=ev_game;
+
+  delete from public.score_events where id=ev_id;
+
+  update public.matches
+     set status='live', current_game=ev_game
+   where id=p_match;
+end $$;
+
+grant execute on function public.undo_last_point(uuid) to authenticated;
+
 do $$ begin
   begin alter publication supabase_realtime add table public.matches; exception when duplicate_object then null; end;
   begin alter publication supabase_realtime add table public.games; exception when duplicate_object then null; end;

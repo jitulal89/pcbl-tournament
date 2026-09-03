@@ -97,8 +97,14 @@
     m.sets[m.game||0][side==='A'?0:1]++;
     advanceDemo(m); render();
   }
+  async function cloudUndo(id){
+    if(!sb) return;
+    const {error}=await sb.rpc('undo_last_point',{p_match:id});
+    if(error){ alert(error.message); return; }
+    await loadCloud();
+  }
   function undo(id){
-    if(state.mode==='cloud'){ alert('Cloud scoring is audited through score events. To correct a score, use the scorer/database correction workflow.'); return; }
+    if(state.mode==='cloud') return cloudUndo(id);
     const m=state.matches.find(x=>x.id===id), h=m?.history?.pop(); if(h){m.sets=h.sets;m.game=h.game;m.status=h.status;render();}
   }
 

@@ -16,3 +16,7 @@ The public site uses the Supabase publishable key and only reads data. Database 
 
 Updated PCBL pairing enforcement rule:
 - Repeated pairing penalty: if the same two players are paired again, intentionally or by mistake, the opposite team is awarded 1 point.
+
+
+### Live scoring undo
+The Admin Live Scoring screen now supports **Undo** in cloud/Supabase mode. Run the updated `schema.sql` once in Supabase SQL Editor so the `undo_last_point(uuid)` RPC is created. Undo removes the latest score event, subtracts that point, and reopens the match/game if the undone point had completed it.
