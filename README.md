@@ -38,3 +38,6 @@ Triplet scoring:
 - Added an explicit **Men's Triplet — 30 Points** option to the Add Match dialog.
 - Added cache-busting query strings to config.js/app.js so GitHub Pages does not keep serving the older fixture form.
 - Triplet lineup is 1st OUT, 2nd COMMON, 3rd IN.
+
+
+Version 10: Triplet live scoring displays 30 points and court ends change at 15 points; cache-busted JS assets.
