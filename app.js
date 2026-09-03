@@ -31,8 +31,23 @@
     render();
   }
 
+  function matchType(m){ return m?.match_type || m?.type || ''; }
+  function isTriplet(m){ return matchType(m) === "Men's Triplet"; }
+  function isQuadruple(m){ return matchType(m) === "Men's Quadruple"; }
+  function isFinal(m){ return m?.stage === 'finals' || Number(m?.final_no) >= 1; }
+  function finalPoints(finalNo){
+    const n=Number(finalNo);
+    return [1,3,5].includes(n) ? 15 : [2,4,6].includes(n) ? 60 : null;
+  }
+  function pointsLimit(m){
+    if(isFinal(m) && Number(m.final_no)) return finalPoints(m.final_no) || Number(m.points_to_win)||21;
+    if(isQuadruple(m)) return 60;
+    if(isTriplet(m)) return 30;
+    return 21;
+  }
   function isMatchComplete(m,a,b){
-    if(m?.type === "Men's Triplet") return Math.max(a,b) >= 30;
+    const limit=pointsLimit(m);
+    if(isFinal(m) || isQuadruple(m) || isTriplet(m)) return Math.max(a,b) >= limit;
     return (Math.max(a,b)>=21 && Math.abs(a-b)>=2) || Math.max(a,b)>=30;
   }
   function matchWinner(m){
@@ -65,7 +80,7 @@
       const score=fixtureScore(m);
       const ap=(m.ap||[]).map(id=>player(id)?.name).filter(Boolean).join(' & ') || '—';
       const bp=(m.bp||[]).map(id=>player(id)?.name).filter(Boolean).join(' & ') || '—';
-      return `<div class="team-fixture"><div class="fixture-main"><div><b>${esc(m.type)}</b><div class="muted">${esc(m.time||'—')} · Court ${esc(m.court||'—')}</div></div><span class="status ${result==='WON'?'done':result==='LOST'?'live':result.toLowerCase()}">${result}</span></div><div class="fixture-vs"><b>${esc(t.name)}</b><span>vs</span><b>${esc(opp?.name||'—')}</b><strong>${esc(score)}</strong></div><div class="fixture-players"><span>${esc(ap)}</span><span>·</span><span>${esc(bp)}</span></div></div>`;
+      return `<div class="team-fixture"><div class="fixture-main"><div><b>${esc(matchType(m))}</b><div class="muted">${esc(m.time||'—')} · Court ${esc(m.court||'—')}</div></div><span class="status ${result==='WON'?'done':result==='LOST'?'live':result.toLowerCase()}">${result}</span></div><div class="fixture-vs"><b>${esc(t.name)}</b><span>vs</span><b>${esc(opp?.name||'—')}</b><strong>${esc(score)}</strong></div><div class="fixture-players"><span>${esc(ap)}</span><span>·</span><span>${esc(bp)}</span></div></div>`;
     }).join('') || '<p class="muted">No fixtures assigned to this team yet.</p>';
     return `<div class="team-summary"><div><span>Players</span><b>${t.players.length}</b></div><div><span>Played</span><b>${played.length}</b></div><div><span>Wins</span><b>${wins}</b></div><div><span>Losses</span><b>${losses}</b></div></div><h3>Fixtures & Results</h3><div class="team-fixtures">${fixtures}</div>`;
   }
@@ -75,13 +90,24 @@
     $('modal').classList.remove('hidden');
     $('closeTeamDetail').onclick=closeModal;
   }
-  function isTriplet(m){ return m?.type === "Men's Triplet"; }
   function tripletPhase(m){
     const s=currentScore(m), total=Number(s[0]||0)+Number(s[1]||0);
     return total < 15 ? 1 : 2;
   }
+  function quadruplePhase(m){
+    const s=currentScore(m), high=Math.max(Number(s[0]||0),Number(s[1]||0));
+    if(high < 15) return 1;
+    if(high < 30) return 2;
+    if(high < 45) return 3;
+    return 4;
+  }
   function lineupNames(m, side){
     const ids=side==='A'?(m.ap||[]):(m.bp||[]);
+    if(isQuadruple(m) && ids.length>=4){
+      const p=quadruplePhase(m);
+      const active=[[ids[0],ids[1]],[ids[1],ids[2]],[ids[2],ids[3]],[ids[3],ids[0]]][p-1];
+      return active.map(id=>player(id)?.name||'').filter(Boolean).join(' & ');
+    }
     if(!isTriplet(m) || ids.length<3) return ids.map(id=>player(id)?.name||'').filter(Boolean).join(' & ');
     const active=tripletPhase(m)===1 ? [ids[0],ids[1]] : [ids[1],ids[2]];
     return active.map(id=>player(id)?.name||'').filter(Boolean).join(' & ');
@@ -112,7 +138,7 @@
     $('fixturesBody').innerHTML = state.matches.map(m=>{
       const a=team(m.a), b=team(m.b);
       const ap=(m.ap||[]).map(id=>player(id)?.name).filter(Boolean).join(' & '), bp=(m.bp||[]).map(id=>player(id)?.name).filter(Boolean).join(' & ');
-      return `<tr><td>${esc(m.time||'—')}</td><td>${esc(m.court||'—')}</td><td>${esc(m.type)}</td><td>${esc(a?.name||'—')}</td><td>${esc(b?.name||'—')}</td><td>${esc(ap)} vs ${esc(bp)}</td><td><span class="status ${m.status}">${esc(m.status)}</span></td><td>${m.status!=='done'&&m.status!=='cancelled'?`<button class="btn small" data-score="${m.id}">${m.status==='live'?'Score':'Start'}</button>`:'✓'}</td></tr>`;
+      return `<tr><td>${esc(m.time||'—')}</td><td>${esc(m.court||'—')}</td><td>${esc(matchType(m))}</td><td>${esc(a?.name||'—')}</td><td>${esc(b?.name||'—')}</td><td>${esc(ap)} vs ${esc(bp)}</td><td><span class="status ${m.status}">${esc(m.status)}</span></td><td>${m.status!=='done'&&m.status!=='cancelled'?`<button class="btn small" data-score="${m.id}">${m.status==='live'?'Score':'Start'}</button>`:'✓'}</td></tr>`;
     }).join('') || '<tr><td colspan="8" class="muted">No fixtures yet.</td></tr>';
 
     $('liveGrid').innerHTML = state.matches.filter(m=>m.status==='live').map(courtHtml).join('') || '<div class="card"><b>No live matches.</b><p class="muted">Start a fixture from Fixtures.</p></div>';
@@ -123,22 +149,32 @@
       fixtures:state.matches.filter(m=>m.a===t.id||m.b===t.id).length
     })).sort((x,y)=>y.wins-x.wins || x.team.name.localeCompare(y.team.name));
     $('standings').innerHTML = standing.map((x,i)=>`<button type="button" class="player standing-team" data-admin-team-details="${esc(x.team.id)}"><span><b>${i+1}. ${esc(x.team.name)}</b><small>${x.played} played · ${x.team.players.length} players</small></span><b>${x.wins} win${x.wins===1?'':'s'}</b></button>`).join('') || '<p class="muted">No teams.</p>';
-    $('schedule').innerHTML = state.matches.slice().sort((a,b)=>(a.time||'').localeCompare(b.time||'')).map(m=>`<div class="player"><span><b>${esc(m.time||'—')}</b> · Court ${esc(m.court||'—')}<br>${esc(m.type)} · ${esc(team(m.a)?.name||'—')} vs ${esc(team(m.b)?.name||'—')}</span><span class="status ${m.status}">${esc(m.status)}</span></div>`).join('') || '<p class="muted">No matches.</p>';
+    $('schedule').innerHTML = state.matches.slice().sort((a,b)=>(a.time||'').localeCompare(b.time||'')).map(m=>`<div class="player"><span><b>${esc(m.time||'—')}</b> · Court ${esc(m.court||'—')}<br>${esc(matchType(m))} · ${esc(team(m.a)?.name||'—')} vs ${esc(team(m.b)?.name||'—')}</span><span class="status ${m.status}">${esc(m.status)}</span></div>`).join('') || '<p class="muted">No matches.</p>';
   }
 
   function courtHtml(m){
     const a=team(m.a), b=team(m.b), s=currentScore(m);
-    const trip=isTriplet(m), phase=trip?tripletPhase(m):null;
-    let tripletBanner='';
+    const trip=isTriplet(m), quad=isQuadruple(m), final=isFinal(m);
+    let banner='';
     if(trip){
-      const ar=tripletRoleNames(m,'A'), br=tripletRoleNames(m,'B');
+      const ar=tripletRoleNames(m,'A'), br=tripletRoleNames(m,'B'), phase=tripletPhase(m);
       const aPair=phase===1?`${ar.out} + ${ar.common}`:`${ar.common} + ${ar.in}`;
       const bPair=phase===1?`${br.out} + ${br.common}`:`${br.common} + ${br.in}`;
-      tripletBanner=`<div class="tripletPanel"><div><b>${esc(a?.name||'—')}</b><small>OUT: ${esc(ar.out)} · COMMON: ${esc(ar.common)} · IN: ${esc(ar.in)}</small></div><div class="tripletFlow"><b>PHASE ${phase}</b><span>${phase===1?esc(aPair)+' vs '+esc(bPair):esc(aPair)+' vs '+esc(bPair)}</span><small>${phase===1?'First 15 rally points':'Next 15 rally points'}</small></div><div><b>${esc(b?.name||'—')}</b><small>OUT: ${esc(br.out)} · COMMON: ${esc(br.common)} · IN: ${esc(br.in)}</small></div></div>`;
+      banner=`<div class="tripletPanel"><div><b>${esc(a?.name||'—')}</b><small>OUT: ${esc(ar.out)} · COMMON: ${esc(ar.common)} · IN: ${esc(ar.in)}</small></div><div class="tripletFlow"><b>PHASE ${phase}</b><span>${esc(aPair)} vs ${esc(bPair)}</span><small>${phase===1?'First 15 rally points':'Next 15 rally points'}</small></div><div><b>${esc(b?.name||'—')}</b><small>OUT: ${esc(br.out)} · COMMON: ${esc(br.common)} · IN: ${esc(br.in)}</small></div></div>`;
+    } else if(quad){
+      const p=quadruplePhase(m), phasePairs=[[0,1],[1,2],[2,3],[3,0]][p-1], ap=m.ap||[], bp=m.bp||[];
+      const aPair=phasePairs.map(i=>player(ap[i])?.name||'—').join(' + '), bPair=phasePairs.map(i=>player(bp[i])?.name||'—').join(' + ');
+      banner=`<div class="tripletPanel quadruplePanel"><div><b>${esc(a?.name||'—')}</b><small>${esc((ap||[]).map(id=>player(id)?.name||'').join(' · '))}</small></div><div class="tripletFlow"><b>ROTATION ${p} OF 4</b><span>${esc(aPair)} vs ${esc(bPair)}</span><small>${p===1?'0–14':p===2?'15–29':p===3?'30–44':'45–59'} · changes when either team reaches the threshold</small></div><div><b>${esc(b?.name||'—')}</b><small>${esc((bp||[]).map(id=>player(id)?.name||'').join(' · '))}</small></div></div>`;
     }
-    const phaseText=trip ? `<div class="tripletPhase"><b>TRIPLET · 30 POINTS</b><span>PHASE ${phase} · ${phase===1?'0–15':'15–30'}</span><small>${phase===1?'1st OUT + 2nd COMMON':'2nd COMMON + 3rd IN'}</small></div>` : `<div class="games">1 SET · 21 POINTS</div>`;
-    const total=s[0]+s[1];
-    return `<div class="court"><div class="courthead"><div><b>Court ${esc(m.court||'—')}</b><div class="muted">${esc(m.type)} · ${esc(m.time||'')}</div></div><span class="livepill">● LIVE</span></div>${tripletBanner}<div class="scoreteams"><div class="side"><div class="names"><b>${esc(a?.name||'—')}</b><br><small>${esc(lineupNames(m,'A'))}</small></div><button class="scorebtn" data-point="${m.id}:A">${s[0]}</button></div><div class="center"><strong>–</strong>${phaseText}${trip&&total>=15?'<div class="courtNotice">🔄 Triplet ends change at 15 points</div>':''}${!trip&&Math.max(s[0],s[1])>=11?'<div class="courtNotice">🔄 Ends changed at 11 points</div>':''}</div><div class="side"><div class="names"><b>${esc(b?.name||'—')}</b><br><small>${esc(lineupNames(m,'B'))}</small></div><button class="scorebtn" data-point="${m.id}:B">${s[1]}</button></div></div><div class="courtActions"><button class="btn" data-undo="${m.id}">↶ Undo</button><button class="btn" data-finish="${m.id}">Finish</button></div></div>`;
+    const phaseText=trip ? `<div class="tripletPhase"><b>TRIPLET · 30 POINTS</b><span>PHASE ${tripletPhase(m)} · ${tripletPhase(m)===1?'0–15':'15–30'}</span><small>Rotation after 15 total rally points</small></div>`
+      : quad ? `<div class="tripletPhase"><b>QUADRUPLE · 60 POINTS</b><span>ROTATION ${quadruplePhase(m)} · ${quadruplePhase(m)===1?'0–14':quadruplePhase(m)===2?'15–29':quadruplePhase(m)===3?'30–44':'45–59'}</span><small>Rotation changes when either team reaches 15 / 30 / 45</small></div>`
+      : final ? `<div class="games"><b>FINALS · ${pointsLimit(m)} POINTS</b><br>${esc(finalNoLabel(m))}</div>`
+      : `<div class="games">1 SET · 21 POINTS</div>`;
+    return `<div class="court"><div class="courthead"><div><b>Court ${esc(m.court||'—')}</b><div class="muted">${esc(matchType(m))}${final?' · Finals Match '+esc(m.final_no):''} · ${esc(m.time||'')}</div></div><span class="livepill">● LIVE</span></div>${banner}<div class="scoreteams"><div class="side"><div class="names"><b>${esc(a?.name||'—')}</b><br><small>${esc(lineupNames(m,'A'))}</small></div><button class="scorebtn" data-point="${m.id}:A">${s[0]}</button></div><div class="center"><strong>–</strong>${phaseText}</div><div class="side"><div class="names"><b>${esc(b?.name||'—')}</b><br><small>${esc(lineupNames(m,'B'))}</small></div><button class="scorebtn" data-point="${m.id}:B">${s[1]}</button></div></div><div class="courtActions"><button class="btn" data-undo="${m.id}">↶ Undo</button><button class="btn" data-finish="${m.id}">Finish</button></div></div>`;
+  }
+  function finalNoLabel(m){
+    const n=Number(m.final_no);
+    return n===1?'Match 1 · Women’s Doubles':n===2?'Match 2 · Men’s Quadruple':n===3?'Match 3 · Men’s Singles':n===4?'Match 4 · Men’s Quadruple':n===5?'Match 5 · Women’s Doubles':n===6?'Match 6 · Men’s Quadruple':'Finals';
   }
 
   function advanceDemo(m){
@@ -152,28 +188,24 @@
     await loadCloud();
     const m=state.matches.find(x=>x.id===id);
     if(!m) return;
-    const s=currentScore(m), trip=isTriplet(m), reached=trip ? Math.max(s[0],s[1])>=30 : Math.max(s[0],s[1])>=21;
+    const s=currentScore(m), reached=isMatchComplete(m,s[0],s[1]);
     if(reached){
-      const winner=matchWinner(m);
-      const winnerName=winner ? (team(winner)?.name||'') : 'No winner yet';
-      const label=trip?'Triplet (30 points)':'1 Set (21 points)';
-      const message=trip
-        ? `The Triplet has reached ${s[0]} - ${s[1]}.\n\nConfirm that this Triplet is OVER?\nWinner: ${winnerName}\n\nOK = Finish match\nCancel = Keep match live.`
-        : `The match has reached ${s[0]} - ${s[1]}.\n\nConfirm that this ${label} is OVER?\n${winner ? 'Winner: '+winnerName : 'The score may continue if the 2-point rule requires it.'}\n\nOK = Finish match\nCancel = Keep match live.`;
-      if(window.confirm(message)){
-        await finish(id);
-      }
+      const winner=matchWinner(m), winnerName=winner ? (team(winner)?.name||'') : 'No winner yet';
+      const message=`${finalNoLabel(m)} has reached ${s[0]} - ${s[1]}.\n\nConfirm that this match is OVER?\nWinner: ${winnerName}\n\nOK = Finish match\nCancel = Keep match live.`;
+      if(window.confirm(message)) await finish(id);
     }
   }
   function point(id,side){
     if(state.mode==='cloud') return cloudPoint(id,side);
     const m=state.matches.find(x=>x.id===id); if(!m||m.status!=='live') return;
     m.history=m.history||[]; m.history.push({sets:JSON.parse(JSON.stringify(m.sets)),game:m.game,status:m.status});
-    const idx=side==='A'?0:1; const current=currentScore(m); if(Math.max(current[0],current[1])>=30) return; m.sets[0][idx]++; render();
-    const s=currentScore(m), reached=isTriplet(m)?Math.max(s[0],s[1])>=30:Math.max(s[0],s[1])>=21;
+    const idx=side==='A'?0:1, cur=currentScore(m), hardLimit=(isFinal(m)||isQuadruple(m)||isTriplet(m))?pointsLimit(m):30;
+    if(Math.max(cur[0],cur[1])>=hardLimit) return;
+    m.sets[0][idx]++; render();
+    const s=currentScore(m), reached=isMatchComplete(m,s[0],s[1]);
     if(reached){
       const winner=matchWinner(m), winnerName=winner?(team(winner)?.name||''):'No winner yet';
-      const ok=window.confirm(`The ${isTriplet(m)?'Triplet':'match'} has reached ${s[0]} - ${s[1]}.\n\nConfirm that the match is OVER?\n${winner?'Winner: '+winnerName+'\n\n':''}OK = Finish\nCancel = Keep live.`);
+      const ok=window.confirm(`${finalNoLabel(m)} has reached ${s[0]} - ${s[1]}.\n\nConfirm that the match is OVER?\nWinner: ${winnerName}\n\nOK = Finish\nCancel = Keep live.`);
       if(ok){m.status='done';} render();
     }
   }
@@ -205,7 +237,7 @@
 
     const s=currentScore(m);
     const winnerName=winner===m.a ? (team(m.a)?.name||'Team A') : (team(m.b)?.name||'Team B');
-    const matchLabel=isTriplet(m) ? 'Triplet (30 points)' : `${m.type} (21 points)`;
+    const matchLabel=isTriplet(m) ? 'Triplet (30 points)' : isQuadruple(m) ? "Men's Quadruple (60 points)" : isFinal(m) ? finalNoLabel(m) + ` (${pointsLimit(m)} points)` : `${matchType(m)} (21 points)`;
     const confirmed=window.confirm(`Confirm Finish?\n\n${matchLabel}\nScore: ${s[0]} - ${s[1]}\nWinner: ${winnerName}\n\nOnce finished, the match will be marked DONE.`);
     if(!confirmed) return;
 
@@ -224,10 +256,10 @@
 
   function validateLineup(type, ids, teamId){
     const ps=ids.map(player).filter(Boolean);
-    const need=type === "Men's Triplet" ? 3 : (type.includes('Singles')?1:2);
+    const need=type === "Men's Triplet" ? 3 : type === "Men's Quadruple" ? 4 : (type.includes('Singles')?1:2);
     if(ps.length!==need) return `Select exactly ${need} player${need>1?'s':''} for ${team(teamId)?.name||'the team'}.`;
     if(new Set(ids).size!==ids.length) return type === "Men's Triplet" ? 'A player cannot occupy two Triplet positions.' : 'A player cannot be selected twice.';
-    if(type==="Men's Singles"||type==="Men's Doubles"||type==="Men's Triplet"){if(ps.some(p=>p.gender!=='M')) return "Men's match requires male players.";}
+    if(type==="Men's Singles"||type==="Men's Doubles"||type==="Men's Triplet"||type==="Men's Quadruple"){if(ps.some(p=>p.gender!=='M')) return "Men's match requires male players.";}
     if(type==="Women's Singles"||type==="Women's Doubles"){if(ps.some(p=>p.gender!=='F')) return "Women's match requires female players.";}
     if(type==='Mixed Doubles' && !(ps.some(p=>p.gender==='M')&&ps.some(p=>p.gender==='F'))) return 'Mixed Doubles requires one male and one female player.';
     return '';
@@ -250,65 +282,68 @@
     const key=pairKey(pair[0],pair[1]);
     if(!key) return null;
 
-    // Women's Doubles is intentionally excluded from all pair-repeat checks.
-    const restrictedTypes=["Men's Doubles","Mixed Doubles","Men's Triplet"];
+    // Women's Doubles is intentionally excluded.
+    const allowedTypes=["Men's Doubles","Mixed Doubles","Men's Triplet","Men's Quadruple"];
 
-    // Check the currently loaded fixtures first. This makes the rule work even
-    // if a newly created fixture has not appeared in the realtime refresh yet.
-    const localMatches = state.matches || [];
-    for(const m of localMatches){
-      if(excludeMatchId && m.id===excludeMatchId) continue;
-      if(m.a!==teamId && m.b!==teamId) continue;
-      const matchType=m.type || m.match_type;
-      if(!restrictedTypes.includes(matchType)) continue;
-      const existing=m.a===teamId ? (m.ap||[]) : (m.bp||[]);
-      const pairs = matchType === "Men's Triplet" && existing.length >= 3
-        ? [[existing[0],existing[1]],[existing[1],existing[2]]]
-        : existing.length >= 2 ? [[existing[0],existing[1]]] : [];
-      if(pairs.some(x=>pairKey(x[0],x[1])===key)) return m;
+    // In Demo mode, use the local state.
+    if(state.mode!=='cloud' || !sb){
+      for(const m of (state.matches||[])){
+        if(excludeMatchId && m.id===excludeMatchId) continue;
+        if(m.a!==teamId && m.b!==teamId) continue;
+        const matchType=m.type || m.match_type;
+        if(!allowedTypes.includes(matchType)) continue;
+        const existing=m.a===teamId ? (m.ap||[]) : (m.bp||[]);
+        const pairs=[];
+        if(matchType==="Men's Triplet" && existing.length>=3){
+          pairs.push([existing[0],existing[1]],[existing[1],existing[2]]);
+        }else if(existing.length===2){
+          pairs.push([existing[0],existing[1]]);
+        }
+        if(pairs.some(x=>pairKey(x[0],x[1])===key)) return m;
+      }
+      return null;
     }
 
-    // In Demo mode, local state is the complete source of truth.
-    if(state.mode!=='cloud' || !sb) return null;
-
-    // Query match_players directly for the two player IDs. Do not depend on
-    // match_type filtering in the match query; this avoids failures caused by
-    // stale/renamed type fields in the browser state.
     try{
-      const {data:rows,error}=await sb
+      const {data:matches,error:matchError}=await sb
+        .from('matches')
+        .select('id,match_no,match_type,team_a,team_b')
+        .eq('tournament_id',state.tournament.id)
+        .in('match_type',allowedTypes);
+      if(matchError) throw matchError;
+
+      const teamMatches=(matches||[]).filter(m=>m.team_a===teamId||m.team_b===teamId)
+        .filter(m=>!excludeMatchId || m.id!==excludeMatchId);
+      if(!teamMatches.length) return null;
+
+      const ids=teamMatches.map(m=>m.id);
+      const {data:mp,error:mpError}=await sb
         .from('match_players')
-        .select('match_id,player_id,side,lineup_order,matches!inner(id,match_no,match_type,team_a,team_b,tournament_id)')
-        .in('player_id',[pair[0],pair[1]])
-        .eq('matches.tournament_id',state.tournament.id);
-      if(error) throw error;
+        .select('match_id,player_id,side,lineup_order')
+        .in('match_id',ids);
+      if(mpError) throw mpError;
 
-      const byMatch={};
-      for(const r of (rows||[])){
-        const m=r.matches;
-        if(!m || (excludeMatchId && m.id===excludeMatchId)) continue;
-        if(m.team_a!==teamId && m.team_b!==teamId) continue;
-        if(!restrictedTypes.includes(m.match_type)) continue;
+      for(const m of teamMatches){
         const side=m.team_a===teamId?'A':'B';
-        if(r.side!==side) continue;
-        if(!byMatch[m.id]) byMatch[m.id]={match:m,players:[]};
-        byMatch[m.id].players.push(r);
-      }
+        const existing=(mp||[])
+          .filter(x=>x.match_id===m.id && x.side===side)
+          .sort((x,y)=>(x.lineup_order??999)-(y.lineup_order??999))
+          .map(x=>x.player_id);
 
-      for(const entry of Object.values(byMatch)){
-        const m=entry.match;
-        const ids=entry.players
-          .sort((a,b)=>(a.lineup_order??999)-(b.lineup_order??999))
-          .map(r=>r.player_id);
-        const pairs=m.match_type === "Men's Triplet" && ids.length >= 3
-          ? [[ids[0],ids[1]],[ids[1],ids[2]]]
-          : ids.length >= 2 ? [[ids[0],ids[1]]] : [];
+        const pairs=[];
+        if(m.match_type==="Men's Triplet" && existing.length>=3){
+          pairs.push([existing[0],existing[1]],[existing[1],existing[2]]);
+        }else if(m.match_type==="Men's Quadruple" && existing.length>=4){
+          pairs.push([existing[0],existing[1]],[existing[1],existing[2]],[existing[2],existing[3]],[existing[3],existing[0]]);
+        }else if(existing.length===2){
+          pairs.push([existing[0],existing[1]]);
+        }
         if(pairs.some(x=>pairKey(x[0],x[1])===key)) return m;
       }
       return null;
     }catch(err){
       console.error('Pair uniqueness database check failed:',err);
-      alert('Pair validation could not be completed. The match was NOT created.\n\n'+(err?.message||err));
-      throw err;
+      throw new Error('Unable to verify the no-repeat-pair rule. Please try again.');
     }
   }
 
@@ -318,8 +353,9 @@
     if(type === "Men's Doubles" || type === "Mixed Doubles") {
       pairs=[[ids[0],ids[1]]];
     } else if(type === "Men's Triplet") {
-      // Triplet contains two consecutive pairs: OUT+COMMON and COMMON+IN.
       pairs=[[ids[0],ids[1]],[ids[1],ids[2]]];
+    } else if(type === "Men's Quadruple") {
+      pairs=[[ids[0],ids[1]],[ids[1],ids[2]],[ids[2],ids[3]],[ids[3],ids[0]]];
     } else {
       // Women's Doubles and Singles have no pair-repeat restriction.
       return '';
@@ -330,7 +366,7 @@
       if(repeated){
         const names=pair.map(id=>player(id)?.name).filter(Boolean).join(' + ');
         const teamName=team(teamId)?.name||'this team';
-        return `Repeated Pair: ${names}\n\nThis pair has already played together for ${teamName} (Match ${repeated.match_no ?? 'unknown'}).\n\nPCBL rule: the same two players cannot form a pair again in Men's Doubles, Mixed Doubles, or Triplet. Women's Doubles pairs are allowed to repeat.`;
+        return `Repeated Pair: ${names}\n\nThis pair has already played together for ${teamName} (Match ${repeated.match_no ?? 'unknown'}).\n\nPCBL rule: the same two players cannot form a pair again in Men's Doubles, Mixed Doubles, Triplet, or Quadruple. Women's Doubles pairs are allowed to repeat.`;
       }
     }
     return '';
@@ -340,13 +376,56 @@
     const opts=(teamObj?.players||[]).map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('');
     return `<div class="triplet-selects"><label>1st — OUT<select data-triplet="${side}-0"><option value="">Select player</option>${opts}</select></label><label>2nd — COMMON<select data-triplet="${side}-1"><option value="">Select player</option>${opts}</select></label><label>3rd — IN<select data-triplet="${side}-2"><option value="">Select player</option>${opts}</select></label></div>`;
   }
+  function quadrupleSelect(teamObj,side){
+    const opts=(teamObj?.players||[]).filter(p=>p.gender==='M').map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('');
+    return `<div class="triplet-selects quadruple-selects"><label>1st<select data-quad="${side}-0"><option value="">Select player</option>${opts}</select></label><label>2nd<select data-quad="${side}-1"><option value="">Select player</option>${opts}</select></label><label>3rd<select data-quad="${side}-2"><option value="">Select player</option>${opts}</select></label><label>4th<select data-quad="${side}-3"><option value="">Select player</option>${opts}</select></label></div>`;
+  }
+  function finalLineupFor(finalNo,teamObj,side){
+    const n=Number(finalNo);
+    if([2,4,6].includes(n)) return quadrupleSelect(teamObj,side);
+    const opts=(teamObj?.players||[]).map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('');
+    if(n===3) return `<div class="triplet-selects"><label>Men's Singles<select data-final-single="${side}"><option value="">Select player</option>${opts}</select></label></div>`;
+    return `<div class="triplet-selects"><label>Women's Doubles — Player 1<select data-final-wd="${side}-0"><option value="">Select player</option>${opts}</select></label><label>Women's Doubles — Player 2<select data-final-wd="${side}-1"><option value="">Select player</option>${opts}</select></label></div>`;
+  }
+  function finalPlayerIds(finalNo,side){
+    const n=Number(finalNo);
+    if([2,4,6].includes(n)) return [...document.querySelectorAll(`#line${side} select[data-quad^="${side}-"]`)].map(x=>x.value).filter(Boolean);
+    if(n===3) return [...document.querySelectorAll(`#line${side} select[data-final-single="${side}"]`)].map(x=>x.value).filter(Boolean);
+    return [...document.querySelectorAll(`#line${side} select[data-final-wd^="${side}-"]`)].map(x=>x.value).filter(Boolean);
+  }
+  function finalMatchType(finalNo){
+    const n=Number(finalNo);
+    return [1,5].includes(n) ? "Women's Doubles" : n===3 ? "Men's Singles" : "Men's Quadruple";
+  }
+  async function validateFinalPlayerUniqueness(finalNo,teamId,ids){
+    const n=Number(finalNo);
+    if(![2,3,4].includes(n)) return '';
+    const existing=state.matches.filter(m=>isFinal(m)&&m.a===teamId||isFinal(m)&&m.b===teamId).filter(m=>[2,3,4].includes(Number(m.final_no))&&Number(m.final_no)!==n);
+    const used=[];
+    existing.forEach(m=>{ const side=m.a===teamId?'A':'B'; used.push(...(side==='A'?(m.ap||[]):(m.bp||[]))); });
+    const dup=ids.find(id=>used.includes(id));
+    if(dup) return `Finals player uniqueness rule: ${player(dup)?.name||'This player'} is already selected for ${team(teamId)?.name||'this team'} in Finals Match 2, 3 or 4. All 9 men across Matches 2, 3 and 4 must be unique.`;
+    return '';
+  }
   function populateLineups(){
-    const A=team($('mtA').value), B=team($('mtB').value), type=$('mtType').value;
+    const A=team($('mtA').value), B=team($('mtB').value), type=$('mtType').value, stage=$('mtStage')?.value||'league';
     $('lineATitle').textContent = `${A?.name || 'Team A'} lineup`;
     $('lineBTitle').textContent = `${B?.name || 'Team B'} lineup`;
+    if(stage==='finals'){
+      const fn=Number($('mtFinalNo').value);
+      if(!fn){ $('lineA').innerHTML=''; $('lineB').innerHTML=''; $('lineMsg').textContent='Select Finals Match 1–6.'; return; }
+      $('lineA').innerHTML=finalLineupFor(fn,A,'A'); $('lineB').innerHTML=finalLineupFor(fn,B,'B');
+      $('lineMsg').textContent=`${finalNoLabel({final_no:fn})}: ${finalMatchType(fn)} · ${finalPoints(fn)} points.`;
+      return;
+    }
     if(type === "Men's Triplet") {
       $('lineA').innerHTML=tripletSelect(A,'A'); $('lineB').innerHTML=tripletSelect(B,'B');
       $('lineMsg').textContent='Triplet: select 3 men in order — 1st OUT, 2nd COMMON (plays all 30), 3rd IN.';
+      return;
+    }
+    if(type === "Men's Quadruple") {
+      $('lineA').innerHTML=quadrupleSelect(A,'A'); $('lineB').innerHTML=quadrupleSelect(B,'B');
+      $('lineMsg').textContent='Quadruple: select 4 men in order. Rotation = 1+2 → 2+3 → 3+4 → 4+1; changes when either team reaches 15, 30 or 45.';
       return;
     }
     $('lineA').innerHTML=(A?.players||[]).map(p=>`<label><input type="checkbox" value="${p.id}" data-line="A">${esc(p.name)} (${p.gender})</label>`).join('');
@@ -357,33 +436,45 @@
   function openMatchModal(){
     if(state.teams.length<2){alert('Add at least two teams first.');return;}
     const opts=state.teams.map(t=>`<option value="${esc(t.id)}">${esc(t.name)}</option>`).join('');
-    $('modalBox').innerHTML=`<h2>Add PCBL Match</h2><div class="two"><input id="mtTime" placeholder="Time e.g. 7:30"><input id="mtCourt" placeholder="Court 1"><select id="mtType"><option value="Men's Singles">Men's Singles</option><option value="Women's Singles">Women's Singles</option><option value="Men's Doubles">Men's Doubles</option><option value="Men's Triplet">Men's Triplet — 30 Points</option><option value="Women's Doubles">Women's Doubles</option><option value="Mixed Doubles">Mixed Doubles</option></select><select id="mtA">${opts}</select><select id="mtB">${opts}</select></div><div class="lineup"><div><h3 id="lineATitle">Team A lineup</h3><div id="lineA" class="checks"></div></div><div><h3 id="lineBTitle">Team B lineup</h3><div id="lineB" class="checks"></div></div></div><div id="lineMsg" class="warn"></div><div class="modal-actions"><button class="btn" id="cancelModal">Cancel</button><button class="btn dark" id="createMatchBtn">Create Match</button></div>`;
-    $('modal').classList.remove('hidden'); $('mtA').addEventListener('change',populateLineups); $('mtB').addEventListener('change',populateLineups); $('mtType').addEventListener('change',populateLineups); $('cancelModal').onclick=closeModal; $('createMatchBtn').onclick=createMatch; populateLineups();
+    $('modalBox').innerHTML=`<h2>Add PCBL Match</h2><div class="two"><input id="mtTime" placeholder="Time e.g. 7:30"><input id="mtCourt" placeholder="Court 1"><select id="mtStage"><option value="league">League Stage</option><option value="finals">Finals</option></select><select id="mtFinalNo" class="hidden"><option value="">Finals Match #</option><option value="1">1 — Women’s Doubles · 15</option><option value="2">2 — Men’s Quadruple · 60</option><option value="3">3 — Men’s Singles · 15</option><option value="4">4 — Men’s Quadruple · 60</option><option value="5">5 — Women’s Doubles · 15</option><option value="6">6 — Men’s Quadruple · 60</option></select><select id="mtType"><option value="Men's Singles">Men's Singles</option><option value="Women's Singles">Women's Singles</option><option value="Men's Doubles">Men's Doubles</option><option value="Men's Triplet">Men's Triplet — 30 Points</option><option value="Men's Quadruple">Men's Quadruple — 60 Points</option><option value="Women's Doubles">Women's Doubles</option><option value="Mixed Doubles">Mixed Doubles</option></select><select id="mtA">${opts}</select><select id="mtB">${opts}</select></div><div class="lineup"><div><h3 id="lineATitle">Team A lineup</h3><div id="lineA" class="checks"></div></div><div><h3 id="lineBTitle">Team B lineup</h3><div id="lineB" class="checks"></div></div></div><div id="lineMsg" class="warn"></div><div class="modal-actions"><button class="btn" id="cancelModal">Cancel</button><button class="btn dark" id="createMatchBtn">Create Match</button></div>`;
+    $('modal').classList.remove('hidden');
+    $('mtStage').addEventListener('change',()=>{
+      const finals=$('mtStage').value==='finals'; $('mtFinalNo').classList.toggle('hidden',!finals);
+      if(finals){$('mtFinalNo').value='';$('mtType').disabled=true;} else {$('mtType').disabled=false;}
+      populateLineups();
+    });
+    $('mtFinalNo').addEventListener('change',()=>{ const n=Number($('mtFinalNo').value); if(n) $('mtType').value=finalMatchType(n); populateLineups(); });
+    $('mtA').addEventListener('change',populateLineups); $('mtB').addEventListener('change',populateLineups); $('mtType').addEventListener('change',populateLineups); $('cancelModal').onclick=closeModal; $('createMatchBtn').onclick=createMatch; populateLineups();
   }
+
   function closeModal(){$('modal').classList.add('hidden');}
 
   async function createMatch(){
-    const a=$('mtA').value,b=$('mtB').value,type=$('mtType').value;
+    const a=$('mtA').value,b=$('mtB').value,type=$('mtType').value,stage=$('mtStage')?.value||'league',finalNo=stage==='finals'?Number($('mtFinalNo').value):null;
     if(a===b){alert('Choose different teams.');return;}
-    const ap=type === "Men's Triplet" ? [...document.querySelectorAll('#lineA select[data-triplet^=\"A-\"]')].map(x=>x.value).filter(Boolean) : [...document.querySelectorAll('#lineA input:checked')].map(x=>x.value);
-    const bp=type === "Men's Triplet" ? [...document.querySelectorAll('#lineB select[data-triplet^=\"B-\"]')].map(x=>x.value).filter(Boolean) : [...document.querySelectorAll('#lineB input:checked')].map(x=>x.value);
-    const errA=validateLineup(type,ap,a), errB=validateLineup(type,bp,b); if(errA||errB){alert(errA||errB);return;}
-    const createBtn=$('createMatchBtn');
-    if(createBtn) createBtn.disabled=true;
-    try {
-      const pairErrA=await validatePairUniqueness(ap,a,type), pairErrB=await validatePairUniqueness(bp,b,type);
-      if(pairErrA||pairErrB){alert(pairErrA||pairErrB);return;}
-    } finally {
-      if(createBtn) createBtn.disabled=false;
+    if(stage==='finals' && !finalNo){alert('Select Finals Match 1–6.');return;}
+    if(stage==='finals' && state.matches.some(m=>isFinal(m) && Number(m.final_no)===finalNo)){alert(`Finals Match ${finalNo} already exists. Each Finals Match 1–6 can be created only once.`);return;}
+    const effectiveType=stage==='finals'?finalMatchType(finalNo):type;
+    let ap,bp;
+    if(stage==='finals'){ ap=finalPlayerIds(finalNo,'A'); bp=finalPlayerIds(finalNo,'B'); }
+    else if(type === "Men's Triplet") { ap=[...document.querySelectorAll('#lineA select[data-triplet^="A-"]')].map(x=>x.value).filter(Boolean); bp=[...document.querySelectorAll('#lineB select[data-triplet^="B-"]')].map(x=>x.value).filter(Boolean); }
+    else if(type === "Men's Quadruple") { ap=[...document.querySelectorAll('#lineA select[data-quad^="A-"]')].map(x=>x.value).filter(Boolean); bp=[...document.querySelectorAll('#lineB select[data-quad^="B-"]')].map(x=>x.value).filter(Boolean); }
+    else { ap=[...document.querySelectorAll('#lineA input:checked')].map(x=>x.value); bp=[...document.querySelectorAll('#lineB input:checked')].map(x=>x.value); }
+    const errA=validateLineup(effectiveType,ap,a), errB=validateLineup(effectiveType,bp,b); if(errA||errB){alert(errA||errB);return;}
+    if(stage==='finals'){
+      const uA=await validateFinalPlayerUniqueness(finalNo,a,ap), uB=await validateFinalPlayerUniqueness(finalNo,b,bp); if(uA||uB){alert(uA||uB);return;}
     }
+    const pairErrA=await validatePairUniqueness(ap,a,effectiveType), pairErrB=await validatePairUniqueness(bp,b,effectiveType);
+    if(pairErrA||pairErrB){alert(pairErrA||pairErrB);return;}
+    const points=stage==='finals'?finalPoints(finalNo):(effectiveType==="Men's Quadruple"?60:effectiveType==="Men's Triplet"?30:21);
     if(state.mode==='demo'){
-      state.matches.push({id:'m'+Date.now(),time:$('mtTime').value,court:$('mtCourt').value,type,a,b,ap,bp,status:'upcoming',game:0,sets:[[0,0],[0,0],[0,0]],history:[]}); closeModal(); render(); return;
+      state.matches.push({id:'m'+Date.now(),time:$('mtTime').value,court:$('mtCourt').value,type:effectiveType,a,b,ap,bp,status:'upcoming',game:0,sets:[[0,0],[0,0],[0,0]],history:[],stage,final_no:finalNo,points_to_win:points}); closeModal(); render(); return;
     }
     const scheduled=$('mtTime').value ? `${state.tournament.start_date||new Date().toISOString().slice(0,10)}T${$('mtTime').value}:00` : null;
-    const {data,error}=await sb.from('matches').insert({tournament_id:state.tournament.id,match_no:state.matches.length+1,scheduled_at:scheduled,court:$('mtCourt').value,match_type:type,team_a:a,team_b:b,status:'upcoming',current_game:1}).select().single();
+    const {data,error}=await sb.from('matches').insert({tournament_id:state.tournament.id,match_no:Math.max(0,...state.matches.map(m=>Number(m.match_no)||0))+1,scheduled_at:scheduled,court:$('mtCourt').value,match_type:effectiveType,team_a:a,team_b:b,status:'upcoming',current_game:1,stage,final_no:finalNo,points_to_win:points}).select().single();
     if(error){alert(error.message);return;}
     const rows=[...ap.map((id,i)=>({match_id:data.id,player_id:id,side:'A',lineup_order:i+1})),...bp.map((id,i)=>({match_id:data.id,player_id:id,side:'B',lineup_order:i+1}))];
-    const {error:mpErr}=await sb.from('match_players').insert(rows); if(mpErr){await sb.from('matches').delete().eq('id',data.id); alert('Could not save the lineup. If this is a Triplet, run triplet_update.sql in Supabase first.\n\n'+mpErr.message); return;}
+    const {error:mpErr}=await sb.from('match_players').insert(rows); if(mpErr){await sb.from('matches').delete().eq('id',data.id); alert('Could not save the lineup. If this is a Triplet/Quadruple, run the safe migration SQL first.\n\n'+mpErr.message); return;}
     const {error:gameErr}=await sb.from('games').insert({match_id:data.id,game_no:1}); if(gameErr){await sb.from('match_players').delete().eq('match_id',data.id); await sb.from('matches').delete().eq('id',data.id); alert('Could not create the score record.\n\n'+gameErr.message); return;} closeModal(); await loadCloud();
   }
 
