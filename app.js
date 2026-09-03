@@ -99,7 +99,7 @@
     }
     const phaseText=trip ? `<div class="tripletPhase"><b>TRIPLET · PHASE ${phase}</b><span>${phase===1?'First 15 rally points':'Next 15 rally points'}</span><small>${phase===1?'1st OUT + 2nd COMMON':'2nd COMMON + 3rd IN'}</small></div>` : `<div class="games">1 SET · 21 POINTS</div>`;
     const total=s[0]+s[1];
-    return `<div class="court"><div class="courthead"><div><b>Court ${esc(m.court||'—')}</b><div class="muted">${esc(m.type)} · ${esc(m.time||'')}</div></div><span class="livepill">● LIVE</span></div>${tripletBanner}<div class="scoreteams"><div class="side"><div class="names"><b>${esc(a?.name||'—')}</b><br><small>${esc(lineupNames(m,'A'))}</small></div><button class="scorebtn" data-point="${m.id}:A">${s[0]}</button></div><div class="center"><strong>–</strong>${phaseText}${trip&&total>=15?'<div class="courtNotice">🔄 Player change completed at 15 total rally points</div>':''}${Math.max(s[0],s[1])>=11?'<div class="courtNotice">🔄 Ends changed at 11 points</div>':''}</div><div class="side"><div class="names"><b>${esc(b?.name||'—')}</b><br><small>${esc(lineupNames(m,'B'))}</small></div><button class="scorebtn" data-point="${m.id}:B">${s[1]}</button></div></div><div class="courtActions"><button class="btn" data-undo="${m.id}">↶ Undo</button><button class="btn" data-finish="${m.id}">Finish</button></div></div>`;
+    return `<div class="court"><div class="courthead"><div><b>Court ${esc(m.court||'—')}</b><div class="muted">${esc(m.type)} · ${esc(m.time||'')}</div></div><span class="livepill">● LIVE</span></div>${tripletBanner}<div class="scoreteams"><div class="side"><div class="names"><b>${esc(a?.name||'—')}</b><br><small>${esc(lineupNames(m,'A'))}</small></div><button class="scorebtn" data-point="${m.id}:A">${s[0]}</button></div><div class="center"><strong>–</strong>${phaseText}${trip&&total>=15?'<div class="courtNotice">🔄 Triplet ends changed at 15 points</div>':''}${!trip&&Math.max(s[0],s[1])>=11?'<div class="courtNotice">🔄 Ends changed at 11 points</div>':''}</div><div class="side"><div class="names"><b>${esc(b?.name||'—')}</b><br><small>${esc(lineupNames(m,'B'))}</small></div><button class="scorebtn" data-point="${m.id}:B">${s[1]}</button></div></div><div class="courtActions"><button class="btn" data-undo="${m.id}">↶ Undo</button><button class="btn" data-finish="${m.id}">Finish</button></div></div>`;
   }
 
   function advanceDemo(m){
@@ -139,12 +139,19 @@
 
     const winner=matchWinner(m);
     if(!winner){
-      alert('Cannot finish a tied match. Please add a point or correct the score first.');
+      alert('Cannot finish a tied or incomplete match. Please add a point or correct the score first.');
       return;
     }
 
+    const s=currentScore(m);
+    const winnerName=winner===m.a ? (team(m.a)?.name||'Team A') : (team(m.b)?.name||'Team B');
+    const matchLabel=isTriplet(m) ? 'Triplet (30 points)' : `${m.type} (21 points)`;
+    const confirmed=window.confirm(`Confirm Finish?\n\n${matchLabel}\nScore: ${s[0]} - ${s[1]}\nWinner: ${winnerName}\n\nOnce finished, the match will be marked DONE.`);
+    if(!confirmed) return;
+
     if(state.mode==='cloud'){
-      await sb.from('games').update({completed:true}).eq('match_id',id).eq('game_no',1);
+      const {error:gameError}=await sb.from('games').update({completed:true}).eq('match_id',id).eq('game_no',1);
+      if(gameError){alert(gameError.message);return;}
       const {error}=await sb.from('matches').update({status:'done',current_game:1}).eq('id',id);
       if(error) alert(error.message);
       else await loadCloud();
