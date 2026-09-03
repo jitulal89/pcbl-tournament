@@ -109,13 +109,34 @@
 
   async function cloudPoint(id,side){
     const {error}=await sb.rpc('add_point',{p_match:id,p_side:side});
-    if(error) alert(error.message); else await loadCloud();
+    if(error){ alert(error.message); return; }
+    await loadCloud();
+    const m=state.matches.find(x=>x.id===id);
+    if(!m) return;
+    const s=currentScore(m), trip=isTriplet(m), reached=trip ? Math.max(s[0],s[1])>=30 : Math.max(s[0],s[1])>=21;
+    if(reached){
+      const winner=matchWinner(m);
+      const winnerName=winner ? (team(winner)?.name||'') : 'No winner yet';
+      const label=trip?'Triplet (30 points)':'1 Set (21 points)';
+      const message=trip
+        ? `The Triplet has reached ${s[0]} - ${s[1]}.\n\nConfirm that this Triplet is OVER?\nWinner: ${winnerName}\n\nOK = Finish match\nCancel = Keep match live.`
+        : `The match has reached ${s[0]} - ${s[1]}.\n\nConfirm that this ${label} is OVER?\n${winner ? 'Winner: '+winnerName : 'The score may continue if the 2-point rule requires it.'}\n\nOK = Finish match\nCancel = Keep match live.`;
+      if(window.confirm(message)){
+        await finish(id);
+      }
+    }
   }
   function point(id,side){
     if(state.mode==='cloud') return cloudPoint(id,side);
     const m=state.matches.find(x=>x.id===id); if(!m||m.status!=='live') return;
     m.history=m.history||[]; m.history.push({sets:JSON.parse(JSON.stringify(m.sets)),game:m.game,status:m.status});
-    const idx=side==='A'?0:1; const current=currentScore(m); if(isMatchComplete(m,current[0],current[1])) return; m.sets[0][idx]++; advanceDemo(m); render();
+    const idx=side==='A'?0:1; const current=currentScore(m); if(Math.max(current[0],current[1])>=30) return; m.sets[0][idx]++; render();
+    const s=currentScore(m), reached=isTriplet(m)?Math.max(s[0],s[1])>=30:Math.max(s[0],s[1])>=21;
+    if(reached){
+      const winner=matchWinner(m), winnerName=winner?(team(winner)?.name||''):'No winner yet';
+      const ok=window.confirm(`The ${isTriplet(m)?'Triplet':'match'} has reached ${s[0]} - ${s[1]}.\n\nConfirm that the match is OVER?\n${winner?'Winner: '+winnerName+'\n\n':''}OK = Finish\nCancel = Keep live.`);
+      if(ok){m.status='done';} render();
+    }
   }
   async function cloudUndo(id){
     if(!sb) return;

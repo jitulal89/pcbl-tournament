@@ -14,44 +14,40 @@ where lineup_order is not null;
 create or replace function public.add_point(p_match uuid,p_side text)
 returns void language plpgsql security invoker as $$
 declare
-  g integer;
   a integer;
   b integer;
   mt text;
-  finished boolean := false;
 begin
   if p_side not in ('A','B') then raise exception 'Invalid side'; end if;
-  select current_game, match_type into g, mt
-  from public.matches where id=p_match and status='live' for update;
-  if g is null then raise exception 'Match is not live'; end if;
+
+  select match_type into mt
+  from public.matches
+  where id=p_match and status='live'
+  for update;
+
+  if mt is null then raise exception 'Match is not live'; end if;
 
   select score_a,score_b into a,b
-  from public.games where match_id=p_match and game_no=1 for update;
+  from public.games
+  where match_id=p_match and game_no=1
+  for update;
+
   if a is null then raise exception 'Score record not found'; end if;
 
-  if mt='Men''s Triplet' then
-    if greatest(a,b) >= 30 then raise exception 'Triplet is already complete'; end if;
-  else
-    if (greatest(a,b)>=21 and abs(a-b)>=2) or greatest(a,b)>=30 then
-      raise exception 'Match is already complete';
-    end if;
+  -- Never auto-finish a match. The scorer must confirm Finish in the UI.
+  -- Hard cap remains 30 points for every PCBL one-set match.
+  if greatest(a,b) >= 30 then
+    raise exception 'Maximum score reached. Confirm Finish for this match.';
   end if;
 
   if p_side='A' then a:=a+1; else b:=b+1; end if;
-  update public.games set score_a=a,score_b=b where match_id=p_match and game_no=1;
 
-  if mt='Men''s Triplet' then
-    finished := greatest(a,b)>=30;
-  else
-    finished := (greatest(a,b)>=21 and abs(a-b)>=2) or greatest(a,b)>=30;
-  end if;
+  update public.games
+  set score_a=a, score_b=b, completed=false
+  where match_id=p_match and game_no=1;
 
-  if finished then
-    update public.games set completed=true where match_id=p_match and game_no=1;
-    update public.matches set status='done', current_game=1 where id=p_match;
-  end if;
-
-  insert into public.score_events(match_id,game_no,side) values(p_match,1,p_side);
+  insert into public.score_events(match_id,game_no,side)
+  values(p_match,1,p_side);
 end $$;
 
 grant execute on function public.add_point(uuid,text) to authenticated;

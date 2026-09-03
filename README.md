@@ -1,43 +1,14 @@
-# PCBL Tournament Website — v8 Triplet Fixture Fix
+# PCBL v12
 
-## Public site
-Open `index.html` (the GitHub Pages root). No login is required. Visitors can see the dashboard, standings, fixtures, teams/players, PCBL rules and live scores.
+## Changes
+- Match scoring no longer automatically marks a match DONE when 21 (doubles/singles) or 30 (triplet) is reached.
+- The scorer gets a confirmation popup after a scoring point reaches the relevant threshold.
+- Triplet remains 30 points, with ends change at 15.
+- Normal PCBL matches remain one set to 21, with ends change at 11.
+- Finish button retains a confirmation popup.
+- Home-page Team Standings are clickable and open a Team Details view showing roster summary, all fixtures, opponents, players, scores, results, live/upcoming status, and past match outcomes.
+- Public Live Scores also displays the correct Triplet 30-point format and 15-point ends change.
+- Updated `triplet_update.sql` replaces the `add_point` RPC so it does not auto-finish matches.
 
-## Admin/scorer
-Open `admin.html` and sign in with the Supabase Auth account. Admin/scorer controls remain protected by login.
-
-## Public live screen
-`live.html` is the clean court-by-court spectator screen and updates through Supabase Realtime.
-
-## Deployment
-Replace the files in the existing GitHub Pages repository with all files in this package. No changes are required to the Supabase URL/key in `config.js`.
-
-The public site uses the Supabase publishable key and only reads data. Database writes remain behind authenticated Supabase policies.
-
-Updated PCBL pairing enforcement rule:
-- Repeated pairing penalty: if the same two players are paired again, intentionally or by mistake, the opposite team is awarded 1 point.
-
-
-### Live scoring undo
-The Admin Live Scoring screen now supports **Undo** in cloud/Supabase mode. Run the updated `schema.sql` once in Supabase SQL Editor so the `undo_last_point(uuid)` RPC is created. Undo removes the latest score event, subtracts that point, and reopens the match/game if the undone point had completed it.
-
-## Triplet update
-
-Run `triplet_update.sql` once in Supabase SQL Editor before creating Triplet fixtures. This is a SAFE migration: it does not drop tables or delete tournament data.
-
-Triplet scoring:
-- 30-point single-set match.
-- Player order is 1st OUT, 2nd COMMON, 3rd IN.
-- Phase 1 (first 15 total rally points): 1st + 2nd.
-- Phase 2 (next 15 total rally points): 2nd + 3rd.
-- The middle/common player plays all 30 points.
-- Court ends change when a side first reaches 11 points.
-- First side to 30 wins.
-
-### v8 fixture fix
-- Added an explicit **Men's Triplet — 30 Points** option to the Add Match dialog.
-- Added cache-busting query strings to config.js/app.js so GitHub Pages does not keep serving the older fixture form.
-- Triplet lineup is 1st OUT, 2nd COMMON, 3rd IN.
-
-
-Version 10: Triplet live scoring displays 30 points and court ends change at 15 points; cache-busted JS assets.
+## Supabase migration
+Run `triplet_update.sql` once in Supabase SQL Editor. It is an incremental migration and does not drop or delete tournament data.

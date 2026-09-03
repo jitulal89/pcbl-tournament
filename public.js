@@ -29,6 +29,28 @@
     const d = new Date(v); if (Number.isNaN(d.getTime())) return v;
     return d.toLocaleString([], {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
   }
+  function resultForTeam(m,teamId){
+    if(m.status!=='done') return m.status==='live'?'LIVE':'UPCOMING';
+    const w=winner(m);
+    return w===teamId?'WON':w?'LOST':'DRAW';
+  }
+  function teamDetailHtml(t){
+    const ms=matches.filter(m=>m.team_a===t.id||m.team_b===t.id).sort((a,b)=>new Date(a.scheduled_at||0)-new Date(b.scheduled_at||0));
+    const played=ms.filter(m=>m.status==='done'), wins=played.filter(m=>winner(m)===t.id).length, losses=played.filter(m=>winner(m)&&winner(m)!==t.id).length;
+    const fixtures=ms.map(m=>{
+      const isA=m.team_a===t.id, opp=team(isA?m.team_b:m.team_a), result=resultForTeam(m,t.id);
+      const sc=scoreText(m);
+      const mpA=lineup(m,'A'), mpB=lineup(m,'B');
+      return `<div class="team-fixture"><div class="fixture-main"><div><b>${esc(m.match_type)}</b><div class="muted">${esc(formatTime(m.scheduled_at))} · Court ${esc(m.court||'—')}</div></div><span class="status ${result==='WON'?'done':result==='LOST'?'live':result.toLowerCase()}">${result}</span></div><div class="fixture-vs"><b>${esc(t.name)}</b><span>vs</span><b>${esc(opp?.name||'—')}</b><strong>${esc(sc)}</strong></div><div class="fixture-players"><span>${esc(mpA)}</span><span>·</span><span>${esc(mpB)}</span></div></div>`;
+    }).join('') || '<p class="muted">No fixtures assigned to this team yet.</p>';
+    return `<div class="team-summary"><div><span>Players</span><b>${(t.players||[]).length}</b></div><div><span>Played</span><b>${played.length}</b></div><div><span>Wins</span><b>${wins}</b></div><div><span>Losses</span><b>${losses}</b></div></div><h3>Fixtures & Results</h3><div class="team-fixtures">${fixtures}</div>`;
+  }
+  function openTeamDetails(id){
+    const t=team(id); if(!t) return;
+    $('teamDetailTitle').textContent=`${t.name} — Fixtures & Results`;
+    $('teamDetailBody').innerHTML=teamDetailHtml(t);
+    $('teamDetailModal').classList.remove('hidden');
+  }
   function show(page) {
     document.querySelectorAll('.page').forEach(x => x.classList.add('hidden'));
     $(page)?.classList.remove('hidden');
@@ -46,7 +68,7 @@
 
     const standing = teams.map(t => ({t,wins:matches.filter(m=>m.status==='done'&&winner(m)===t.id).length}))
       .sort((a,b)=>b.wins-a.wins || a.t.name.localeCompare(b.t.name));
-    $('standings').innerHTML = standing.map((x,i)=>`<div class="player"><span><b>${i+1}. ${esc(x.t.name)}</b></span><b>${x.wins} win${x.wins===1?'':'s'}</b></div>`).join('') || '<p class="muted">No teams registered.</p>';
+    $('standings').innerHTML = standing.map((x,i)=>`<button class="player standing-team" data-team-details="${esc(x.t.id)}"><span><b>${i+1}. ${esc(x.t.name)}</b><small>${(x.t.players||[]).length} players · ${matches.filter(m=>m.status==='done'&&(m.team_a===x.t.id||m.team_b===x.t.id)).length} played</small></span><b>${x.wins} win${x.wins===1?'':'s'}</b></button>`).join('') || '<p class="muted">No teams registered.</p>';
 
     $('schedule').innerHTML = matches.slice().sort((a,b)=>new Date(a.scheduled_at||0)-new Date(b.scheduled_at||0)).slice(0,12).map(m=>`<div class="player"><span><b>${esc(formatTime(m.scheduled_at))}</b> · Court ${esc(m.court||'—')}<br>${esc(m.match_type)} · ${esc(team(m.team_a)?.name||'—')} vs ${esc(team(m.team_b)?.name||'—')}</span><span class="status ${esc(m.status)}">${esc(m.status)}</span></div>`).join('') || '<p class="muted">No fixtures yet.</p>';
 
@@ -62,7 +84,10 @@
     const cur=gs.find(g=>!g.completed) || gs[gs.length-1] || {score_a:0,score_b:0};
     const ga=gs.filter(g=>g.completed&&Number(g.score_a)>Number(g.score_b)).length;
     const gb=gs.filter(g=>g.completed&&Number(g.score_b)>Number(g.score_a)).length;
-    return `<div class="court"><div class="courthead"><div><b>Court ${esc(m.court||'—')}</b><div class="muted">${esc(m.match_type)} · ${esc(formatTime(m.scheduled_at))}</div></div><span class="livepill">● LIVE</span></div><div class="scoreteams"><div class="side"><div class="names"><b>${esc(a?.name||'—')}</b><br><small>${esc(lineup(m,'A'))}</small></div><div class="publicscore">${Number(cur.score_a||0)}</div></div><div class="center"><strong>–</strong><div class="games">Games ${ga} : ${gb}</div></div><div class="side"><div class="names"><b>${esc(b?.name||'—')}</b><br><small>${esc(lineup(m,'B'))}</small></div><div class="publicscore">${Number(cur.score_b||0)}</div></div></div></div>`;
+    const trip= m.match_type === "Men's Triplet";
+    const total=Number(cur.score_a||0)+Number(cur.score_b||0);
+    const center=trip ? `<div class="games"><b>TRIPLET · 30 POINTS</b><br>Phase ${total<15?1:2} · Ends change at 15</div>` : `<div class="games"><b>1 SET · 21 POINTS</b><br>Ends change at 11</div>`;
+    return `<div class="court"><div class="courthead"><div><b>Court ${esc(m.court||'—')}</b><div class="muted">${esc(m.match_type)} · ${esc(formatTime(m.scheduled_at))}</div></div><span class="livepill">● LIVE</span></div><div class="scoreteams"><div class="side"><div class="names"><b>${esc(a?.name||'—')}</b><br><small>${esc(lineup(m,'A'))}</small></div><div class="publicscore">${Number(cur.score_a||0)}</div></div><div class="center"><strong>–</strong>${center}</div><div class="side"><div class="names"><b>${esc(b?.name||'—')}</b><br><small>${esc(lineup(m,'B'))}</small></div><div class="publicscore">${Number(cur.score_b||0)}</div></div></div></div>`;
   }
   async function load() {
     if (!sb) return;
@@ -88,4 +113,9 @@
   if (!window.supabase || !cfg.SUPABASE_URL || !cfg.SUPABASE_PUBLISHABLE_KEY) { $('connection').textContent='CONFIG ERROR'; }
   else { sb=window.supabase.createClient(cfg.SUPABASE_URL,cfg.SUPABASE_PUBLISHABLE_KEY); load(); sb.channel('public-site').on('postgres_changes',{event:'*',schema:'public',table:'matches'},load).on('postgres_changes',{event:'*',schema:'public',table:'games'},load).on('postgres_changes',{event:'*',schema:'public',table:'teams'},load).on('postgres_changes',{event:'*',schema:'public',table:'players'},load).subscribe(); }
   document.querySelectorAll('#publicNav button').forEach(b=>b.addEventListener('click',()=>show(b.dataset.page)));
+  document.addEventListener('click',e=>{
+    const btn=e.target.closest('[data-team-details]');
+    if(btn) openTeamDetails(btn.dataset.teamDetails);
+    if(e.target.id==='closeTeamDetail' || e.target.id==='teamDetailModal') $('teamDetailModal').classList.add('hidden');
+  });
 })();
