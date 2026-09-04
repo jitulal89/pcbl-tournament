@@ -1,5 +1,5 @@
 (() => {
-  const cfg=window.PCBL_CONFIG||{}; let sb=null; let tournament=null; let teams=[]; let players=[];
+  const cfg=window.PCBL_CONFIG||{}; let sb=null; let tournament=null; let teams=[]; let players=[]; let viewerChannel=null; let viewerTracked=false;
   const $=id=>document.getElementById(id); const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
   const team=id=>teams.find(t=>t.id===id); const player=id=>players.find(p=>p.id===id);
   const type=m=>m?.match_type||''; const trip=m=>type(m)==="Men's Triplet"; const quad=m=>type(m)==="Men's Quadruple"; const fin=m=>m?.stage==='finals'||Number(m?.final_no)>=1;
@@ -7,7 +7,42 @@
   const label=n=>{const x=Number(n);return x===1?'Match 1 · Women’s Doubles':x===2?'Match 2 · Men’s Quadruple':x===3?'Match 3 · Men’s Singles':x===4?'Match 4 · Men’s Quadruple':x===5?'Match 5 · Women’s Doubles':x===6?'Match 6 · Men’s Quadruple':'Finals';};
   function phase(m){const g=m.gs.find(x=>!x.completed)||m.gs[0]||{score_a:0,score_b:0};const a=Number(g.score_a||0),b=Number(g.score_b||0);if(trip(m))return a+b<15?1:2;if(quad(m))return Math.max(a,b)<15?1:Math.max(a,b)<30?2:Math.max(a,b)<45?3:4;return null;}
   function active(m,side){const ids=side==='A'?m.sideA:m.sideB;if(quad(m)&&ids.length>=4){const p=phase(m),ix=[[0,1],[1,2],[2,3],[3,0]][p-1];return ix.map(i=>player(ids[i])?.name||'').join(' + ');}if(trip(m)&&ids.length>=3){const p=phase(m);return [ids[p===1?0:1],ids[p===1?1:2]].map(id=>player(id)?.name||'').join(' + ');}return ids.map(id=>player(id)?.name||'').join(' & ');}
+  function updateViewerCount(){
+    if(!viewerChannel) return;
+    const state=viewerChannel.presenceState()||{};
+    const count=Object.keys(state).length;
+    const el=$('viewerCount');
+    if(el) el.textContent=`👁 ${count} watching live`;
+  }
+
+  async function startViewerPresence(){
+    if(!sb || viewerChannel) return;
+    const key=(crypto?.randomUUID ? crypto.randomUUID() : `viewer-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    viewerChannel=sb.channel('pcbl-live-viewers', {
+      config:{presence:{key}}
+    });
+    viewerChannel
+      .on('presence',{event:'sync'},updateViewerCount)
+      .on('presence',{event:'join'},updateViewerCount)
+      .on('presence',{event:'leave'},updateViewerCount)
+      .subscribe(async status=>{
+        if(status==='SUBSCRIBED' && !viewerTracked){
+          await viewerChannel.track({page:'live',online_at:new Date().toISOString()});
+          viewerTracked=true;
+          updateViewerCount();
+        }
+      });
+  }
+
+  async function stopViewerPresence(){
+    if(!viewerChannel) return;
+    try{ if(viewerTracked) await viewerChannel.untrack(); }catch(e){}
+    viewerTracked=false;
+  }
+
   async function load(){if(!sb)return;const [tx,tt,pp,mm,mp,gg]=await Promise.all([sb.from('tournaments').select('*').order('created_at',{ascending:true}).limit(1).maybeSingle(),sb.from('teams').select('*').order('name'),sb.from('players').select('*'),sb.from('matches').select('*').order('match_no'),sb.from('match_players').select('*'),sb.from('games').select('*')]);if(tx.error||tt.error||pp.error||mm.error||mp.error||gg.error){$('livePage').innerHTML='<div class="card"><b>Unable to load live scores.</b></div>';return;}tournament=tx.data;teams=tt.data||[];players=pp.data||[];$('title').textContent=tournament?.name||'PCBL 2026';const matches=(mm.data||[]).map(m=>{const gs=(gg.data||[]).filter(g=>g.match_id===m.id).sort((a,b)=>a.game_no-b.game_no);const sideA=(mp.data||[]).filter(x=>x.match_id===m.id&&x.side==='A').sort((a,b)=>(a.lineup_order||99)-(b.lineup_order||99)).map(x=>x.player_id);const sideB=(mp.data||[]).filter(x=>x.match_id===m.id&&x.side==='B').sort((a,b)=>(a.lineup_order||99)-(b.lineup_order||99)).map(x=>x.player_id);return {...m,sideA,sideB,gs};}).filter(m=>m.status==='live'||m.status==='upcoming');$('livePage').innerHTML=matches.map(renderMatch).join('')||'<div class="card"><h2>No live matches</h2><p class="muted">The next fixtures will appear here.</p></div>';}
   function renderMatch(m){const a=team(m.team_a),b=team(m.team_b),g=m.gs.find(x=>!x.completed)||m.gs[0]||{score_a:0,score_b:0},sa=Number(g.score_a||0),sbx=Number(g.score_b||0),p=phase(m);const center=quad(m)?`<div class="tripletPhase"><b>QUADRUPLE · 60 POINTS</b><span>ROTATION ${p} OF 4</span><small>Changes when either team reaches 15 / 30 / 45</small></div>`:trip(m)?`<div class="tripletPhase"><b>TRIPLET · 30 POINTS</b><span>PHASE ${p}</span><small>Rotation after 15 total rally points</small></div>`:fin(m)?`<div class="games"><b>FINALS · ${limit(m)} POINTS</b><br>${esc(label(m.final_no))}</div>`:`<div class="games"><b>1 SET · 21 POINTS</b><br>Ends change at 11</div>`;return `<div class="court"><div class="courthead"><div><b>Court ${esc(m.court||'—')}</b><div class="muted">${esc(fin(m)?label(m.final_no):type(m))} · ${esc(m.scheduled_at||'')}</div></div><span class="${m.status==='live'?'livepill':'status upcoming'}">${m.status==='live'?'● LIVE':'UPCOMING'}</span></div><div class="scoreteams"><div class="side"><div class="names"><b>${esc(a?.name||'—')}</b><br><small>${esc(active(m,'A'))}</small></div><div class="publicscore">${sa}</div></div><div class="center"><strong>–</strong>${center}</div><div class="side"><div class="names"><b>${esc(b?.name||'—')}</b><br><small>${esc(active(m,'B'))}</small></div><div class="publicscore">${sbx}</div></div></div></div>`;}
-  if(window.supabase&&cfg.SUPABASE_URL&&cfg.SUPABASE_PUBLISHABLE_KEY){sb=window.supabase.createClient(cfg.SUPABASE_URL,cfg.SUPABASE_PUBLISHABLE_KEY);load();sb.channel('public-live').on('postgres_changes',{event:'*',schema:'public',table:'matches'},load).on('postgres_changes',{event:'*',schema:'public',table:'games'},load).subscribe();}else{$('livePage').innerHTML='<div class="card"><b>Supabase configuration missing.</b></div>';}
+  if(window.supabase&&cfg.SUPABASE_URL&&cfg.SUPABASE_PUBLISHABLE_KEY){sb=window.supabase.createClient(cfg.SUPABASE_URL,cfg.SUPABASE_PUBLISHABLE_KEY);load();startViewerPresence();sb.channel('public-live').on('postgres_changes',{event:'*',schema:'public',table:'matches'},load).on('postgres_changes',{event:'*',schema:'public',table:'games'},load).subscribe();}else{$('livePage').innerHTML='<div class="card"><b>Supabase configuration missing.</b></div>';}
+  document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') startViewerPresence(); else stopViewerPresence(); });
+  window.addEventListener('pagehide',()=>{ stopViewerPresence(); });
 })();

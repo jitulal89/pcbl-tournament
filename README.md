@@ -20,3 +20,6 @@ Quadruple rotation:
 1+2 -> 2+3 -> 3+4 -> 4+1. Rotation changes when either team first reaches 15, 30, or 45. Match ends when either team reaches 60. Scores such as 60-59 are valid.
 
 Do not run any old destructive schema script.
+
+
+Navigation: Final Format is rendered as an in-page tab on both the public site and Admin; the standalone final_format.html is only a compatibility redirect.

@@ -532,6 +532,22 @@
     render();
   }
 
+  let viewerPresenceChannel=null;
+  function updateAdminViewerCount(){
+    if(!viewerPresenceChannel) return;
+    const state=viewerPresenceChannel.presenceState()||{};
+    const el=$('adminViewerCount');
+    if(el) el.textContent=`👁 ${Object.keys(state).length} watching live`;
+  }
+  function subscribeViewerPresence(){
+    if(!sb || viewerPresenceChannel) return;
+    viewerPresenceChannel=sb.channel('pcbl-live-viewers')
+      .on('presence',{event:'sync'},updateAdminViewerCount)
+      .on('presence',{event:'join'},updateAdminViewerCount)
+      .on('presence',{event:'leave'},updateAdminViewerCount)
+      .subscribe();
+  }
+
   function subscribe(){
     sb.channel('pcbl-live').on('postgres_changes',{event:'*',schema:'public',table:'matches'},loadCloud).on('postgres_changes',{event:'*',schema:'public',table:'games'},loadCloud).subscribe();
   }
@@ -545,7 +561,7 @@
       const {data:t,error:te}=await sb.from('tournaments').select('*').order('created_at',{ascending:true}).limit(1).maybeSingle();
       if(te){$('loginMsg').textContent=te.message;return;}
       if(!t){$('loginMsg').textContent='No tournament found. Run schema.sql in Supabase SQL Editor.';return;}
-      state.tournament=t; $('connection').textContent='SUPABASE'; $('connection').className='badge ok'; hideLogin(); await loadCloud(); subscribe();
+      state.tournament=t; $('connection').textContent='SUPABASE'; $('connection').className='badge ok'; hideLogin(); await loadCloud(); subscribe(); subscribeViewerPresence();
     }
   }
 
