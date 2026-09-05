@@ -75,7 +75,7 @@ begin
   if a is null then raise exception 'Score record not found'; end if;
 
   if mt='Men''s Quadruple' then limit_points:=60;
-  elsif mt='Men''s Triplet' then limit_points:=30;
+  elsif mt='Men''s Triplet' then limit_points:=40;
   elsif st='finals' then limit_points:=coalesce(limit_points,15);
   else limit_points:=30; end if;
 

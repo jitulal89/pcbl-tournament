@@ -47,7 +47,14 @@
   }
   function isMatchComplete(m,a,b){
     const limit=pointsLimit(m);
-    if(isFinal(m) || isQuadruple(m) || isTriplet(m)) return Math.max(a,b) >= limit;
+    if(isTriplet(m)) {
+      const high=Math.max(a,b);
+      const low=Math.min(a,b);
+      // Triplet uses a deuce rule: from 30 onward, a 2-point lead is required,
+      // but 40 points is the absolute winning ceiling.
+      return (high >= 30 && high - low >= 2) || high >= 40;
+    }
+    if(isFinal(m) || isQuadruple(m)) return Math.max(a,b) >= limit;
     return (Math.max(a,b)>=21 && Math.abs(a-b)>=2) || Math.max(a,b)>=30;
   }
   function matchWinner(m){
@@ -89,7 +96,8 @@
       const score=fixtureScore(m);
       const ap=(m.ap||[]).map(id=>player(id)?.name).filter(Boolean).join(' & ') || '—';
       const bp=(m.bp||[]).map(id=>player(id)?.name).filter(Boolean).join(' & ') || '—';
-      return `<div class="team-fixture"><div class="fixture-main"><div><b>${esc(matchType(m))}</b><div class="muted">${esc(m.time||'—')} · Court ${esc(m.court||'—')}</div></div><span class="status ${result==='WON'?'done':result==='LOST'?'live':result.toLowerCase()}">${result}</span></div><div class="fixture-vs"><b>${esc(t.name)}</b><span>vs</span><b>${esc(opp?.name||'—')}</b><strong>${esc(score)}</strong></div><div class="fixture-players"><span>${esc(ap)}</span><span>·</span><span>${esc(bp)}</span></div></div>`;
+      const teamWon=result==='WON'; const teamLost=result==='LOST';
+      return `<div class="team-fixture"><div class="fixture-main"><div><b>${esc(matchType(m))}</b><div class="muted">${esc(m.time||'—')} · Court ${esc(m.court||'—')}</div></div><span class="status ${result==='WON'?'done':result==='LOST'?'live':result.toLowerCase()}">${result}</span></div><div class="fixture-vs"><b class="${teamWon?'result-win':teamLost?'result-loss':''}">${esc(t.name)}</b><span>vs</span><b class="${teamWon?'result-loss':teamLost?'result-win':''}">${esc(opp?.name||'—')}</b><strong>${esc(score)}</strong></div><div class="fixture-players"><span class="${teamWon?'result-win':teamLost?'result-loss':''}">${esc(ap)}</span><span>·</span><span class="${teamWon?'result-loss':teamLost?'result-win':''}">${esc(bp)}</span></div></div>`;
     }).join('') || '<p class="muted">No fixtures assigned to this team yet.</p>';
     return `<div class="team-summary"><div><span>Players</span><b>${t.players.length}</b></div><div><span>Played</span><b>${played.length}</b></div><div><span>Wins</span><b>${wins}</b></div><div><span>Losses</span><b>${losses}</b></div></div><h3>Fixtures & Results</h3><div class="team-fixtures">${fixtures}</div>`;
   }
@@ -147,8 +155,13 @@
     $('fixturesBody').innerHTML = state.matches.map(m=>{
       const a=team(m.a), b=team(m.b);
       const ap=(m.ap||[]).map(id=>player(id)?.name).filter(Boolean).join(' & '), bp=(m.bp||[]).map(id=>player(id)?.name).filter(Boolean).join(' & ');
-      return `<tr><td>${esc(m.time||'—')}</td><td>${esc(m.court||'—')}</td><td>${esc(matchType(m))}</td><td>${esc(a?.name||'—')}</td><td>${esc(b?.name||'—')}</td><td>${esc(ap)} vs ${esc(bp)}</td><td><span class="status ${m.status}">${esc(m.status)}</span></td><td>${m.status!=='done'&&m.status!=='cancelled'?`<button class="btn small" data-score="${m.id}">${m.status==='live'?'Score':'Start'}</button>`:'✓'}</td></tr>`;
-    }).join('') || '<tr><td colspan="8" class="muted">No fixtures yet.</td></tr>';
+      const done=m.status==='done';
+      const w=done?matchWinner(m):null;
+      const aCls=done?(w===m.a?'result-win':w===m.b?'result-loss':'') : '';
+      const bCls=done?(w===m.b?'result-win':w===m.a?'result-loss':'') : '';
+      const score=fixtureScore(m);
+      return `<tr><td>${esc(m.time||'—')}</td><td>${esc(m.court||'—')}</td><td>${esc(matchType(m))}</td><td class="${aCls}"><b>${esc(a?.name||'—')}</b></td><td class="${bCls}"><b>${esc(b?.name||'—')}</b></td><td><span class="${aCls}">${esc(ap||'—')}</span> vs <span class="${bCls}">${esc(bp||'—')}</span></td><td><span class="status ${m.status}">${esc(m.status)}</span></td><td><b class="${done&&w===m.a?'result-win':done&&w===m.b?'result-loss':''}">${esc(score)}</b></td><td>${m.status!=='done'&&m.status!=='cancelled'?`<button class="btn small" data-score="${m.id}">${m.status==='live'?'Score':'Start'}</button>`:'✓'}</td></tr>`;
+    }).join('') || '<tr><td colspan="9" class="muted">No fixtures yet.</td></tr>';
 
     $('liveGrid').innerHTML = state.matches.filter(m=>m.status==='live').map(courtHtml).join('') || '<div class="card"><b>No live matches.</b><p class="muted">Start a fixture from Fixtures.</p></div>';
     const standing = state.teams.map(t=>({
@@ -169,13 +182,13 @@
       const ar=tripletRoleNames(m,'A'), br=tripletRoleNames(m,'B'), phase=tripletPhase(m);
       const aPair=phase===1?`${ar.out} + ${ar.common}`:`${ar.common} + ${ar.in}`;
       const bPair=phase===1?`${br.out} + ${br.common}`:`${br.common} + ${br.in}`;
-      banner=`<div class="tripletPanel"><div><b>${esc(a?.name||'—')}</b><small>OUT: ${esc(ar.out)} · COMMON: ${esc(ar.common)} · IN: ${esc(ar.in)}</small></div><div class="tripletFlow"><b>PHASE ${phase}</b><span>${esc(aPair)} vs ${esc(bPair)}</span><small>${phase===1?'First 15 rally points':'Next 15 rally points'}</small></div><div><b>${esc(b?.name||'—')}</b><small>OUT: ${esc(br.out)} · COMMON: ${esc(br.common)} · IN: ${esc(br.in)}</small></div></div>`;
+      banner=`<div class="tripletPanel"><div><b>${esc(a?.name||'—')}</b><small>OUT: ${esc(ar.out)} · COMMON: ${esc(ar.common)} · IN: ${esc(ar.in)}</small></div><div class="tripletFlow"><b>PHASE ${phase}</b><span>${esc(aPair)} vs ${esc(bPair)}</span><small>${phase===1?'First 15 rally points':'Next 15 rally points'} · Deuce from 30, 2-point lead required, 40 wins</small></div><div><b>${esc(b?.name||'—')}</b><small>OUT: ${esc(br.out)} · COMMON: ${esc(br.common)} · IN: ${esc(br.in)}</small></div></div>`;
     } else if(quad){
       const p=quadruplePhase(m), phasePairs=[[0,1],[1,2],[2,3],[3,0]][p-1], ap=m.ap||[], bp=m.bp||[];
       const aPair=phasePairs.map(i=>player(ap[i])?.name||'—').join(' + '), bPair=phasePairs.map(i=>player(bp[i])?.name||'—').join(' + ');
       banner=`<div class="tripletPanel quadruplePanel"><div><b>${esc(a?.name||'—')}</b><small>${esc((ap||[]).map(id=>player(id)?.name||'').join(' · '))}</small></div><div class="tripletFlow"><b>ROTATION ${p} OF 4</b><span>${esc(aPair)} vs ${esc(bPair)}</span><small>${p===1?'0–14':p===2?'15–29':p===3?'30–44':'45–59'} · changes when either team reaches the threshold</small></div><div><b>${esc(b?.name||'—')}</b><small>${esc((bp||[]).map(id=>player(id)?.name||'').join(' · '))}</small></div></div>`;
     }
-    const phaseText=trip ? `<div class="tripletPhase"><b>TRIPLET · 30 POINTS</b><span>PHASE ${tripletPhase(m)} · ${tripletPhase(m)===1?'0–15':'15–30'}</span><small>Rotation after 15 total rally points</small></div>`
+    const phaseText=trip ? `<div class="tripletPhase"><b>TRIPLET · 30 POINTS</b><span>PHASE ${tripletPhase(m)} · ${tripletPhase(m)===1?'0–15':'15–30'}</span><small>Rotation after 15 total rally points · Deuce from 30, 2-point lead or 40 wins</small></div>`
       : quad ? `<div class="tripletPhase"><b>QUADRUPLE · 60 POINTS</b><span>ROTATION ${quadruplePhase(m)} · ${quadruplePhase(m)===1?'0–14':quadruplePhase(m)===2?'15–29':quadruplePhase(m)===3?'30–44':'45–59'}</span><small>Rotation changes when either team reaches 15 / 30 / 45</small></div>`
       : final ? `<div class="games"><b>FINALS · ${pointsLimit(m)} POINTS</b><br>${esc(finalNoLabel(m))}</div>`
       : `<div class="games">1 SET · 21 POINTS</div>`;
