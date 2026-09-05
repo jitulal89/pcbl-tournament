@@ -48,11 +48,8 @@
       .map(x => x.player_id);
 
     if (matchType(m) === "Men's Triplet" && ids.length >= 3) {
-      const gs = matchGames(m.id);
-      const g = gs[0] || {score_a:0, score_b:0};
-      const total = Number(g.score_a||0) + Number(g.score_b||0);
-      const active = total < 15 ? [ids[0], ids[1]] : [ids[1], ids[2]];
-      return active.map(id => player(id)?.name).filter(Boolean).join(' & ') || '—';
+      const names = ids.map(id => player(id)?.name).filter(Boolean);
+      return `OUT: ${names[0] || '—'} · COMMON: ${names[1] || '—'} · IN: ${names[2] || '—'}`;
     }
 
     return ids.map(id => player(id)?.name).filter(Boolean).join(' & ') || '—';

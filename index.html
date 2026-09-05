@@ -21,7 +21,7 @@
     <button data-page="live">🔴 Live Scores</button>
     <button data-page="fixtures">Fixtures</button>
     <button data-page="teams">Teams & Players</button>
-    <button data-page="rules">PCBL Rules</button><button type="button" data-page="finalformat">Final Format</button>
+    <button data-page="rules">PCBL Rules</button>
   </nav>
 
   <section id="dashboard" class="page">
@@ -45,59 +45,13 @@
 
   <section id="teams" class="page hidden"><div id="teamCards" class="teamgrid"></div></section>
 
-  <section id="finalformat" class="page hidden">
-
-<div class="hero"><div><span class="eyebrow">FINAL FORMAT</span><h1>PCBL FINALS</h1><p>Top 2 teams from the League · 6 matches · 225 total points · highest cumulative score wins.</p></div><div class="heroBtns"><a class="btn dark" href="live.html">🔴 Live Scores</a></div></div>
-<section class="card final-format-card"><h2>Match Format</h2><div class="final-format-table"><div class="ff-row ff-head"><span>Match</span><span>Category</span><span>Format</span><span>Points</span><span>Details</span></div><div class="ff-row"><b>1</b><span>Women</span><strong>Doubles</strong><strong>15</strong><span>Women’s Doubles · played to 15 points</span></div><div class="ff-row"><b>2</b><span>Men</span><strong>Quadruple Rotation</strong><strong>60</strong><span>4 men · 4 rotation segments · pair changes at 15 / 30 / 45 when either team reaches the threshold</span></div><div class="ff-row"><b>3</b><span>Men</span><strong>Singles</strong><strong>15</strong><span>Men’s Singles · played to 15 points</span></div><div class="ff-row"><b>4</b><span>Men</span><strong>Quadruple Rotation</strong><strong>60</strong><span>4 men · 4 rotation segments · pair changes at 15 / 30 / 45 when either team reaches the threshold</span></div><div class="ff-row"><b>5</b><span>Women</span><strong>Doubles</strong><strong>15</strong><span>Women’s Doubles · played to 15 points</span></div><div class="ff-row"><b>6</b><span>Men</span><strong>Quadruple Rotation</strong><strong>60</strong><span>4 men · 4 rotation segments · pair changes at 15 / 30 / 45 when either team reaches the threshold</span></div><div class="ff-total"><span>TOTAL</span><strong>225</strong></div></div></section>
-<section class="rules-section blue"><h3>🔄 MEN’S QUADRUPLE — 60 POINTS</h3><ul><li>The match continues until <b>one team reaches 60 points</b>. A score of <b>60–59 is valid</b>.</li><li>Pair changes are triggered by the <b>first team to reach 15, 30 or 45 points</b>. When one team reaches the threshold, <b>both teams change pairs</b>.</li><li>Rotation: <b>1 + 2 → 2 + 3 → 3 + 4 → 4 + 1</b>.</li><li>Score ranges: <b>0–14</b>, <b>15–29</b>, <b>30–44</b>, <b>45–59</b>.</li><li>There is no 2-point advantage rule for the Quadruple.</li></ul></section>
-<section class="rules-section purple"><h3>🏆 FINALS TEAMS</h3><p>The PCBL Finals are played between <b>only 2 teams</b>: the <b>top 2 teams from the League-stage standings</b>.</p><p class="success">✓ The Finals fixtures can only be created for those two League finalists.</p></section>
-<section class="rules-section blue"><h3>👥 PLAYER UNIQUENESS — FINALS MATCHES 2, 3 & 4</h3><p>Across Finals Matches 2, 3 and 4, all <b>9 men must be unique</b>. Example: Match 2 = A2, A3, A8, A9; Match 3 = A1; Match 4 = A4, A5, A6, A7.</p><p class="success">✓ This uses A1–A9 exactly once across Matches 2, 3 and 4.</p></section>
-<section class="rules-section navy"><h3>🏆 OVERALL SCORING</h3><p>Points scored by each team in every Finals match are added to the cumulative Finals score. After all 6 matches, the team with the highest score out of <b>225</b> is the PCBL Finals Champion.</p><div id="finalProgress" class="final-progress">Loading Finals…</div><div id="champion"></div><div id="finalTotals" class="final-totals"></div></section>
-<section class="card"><div class="cardhead"><h2>Finals Fixtures & Scores</h2></div><div class="tablewrap"><table><thead><tr><th>#</th><th>Format</th><th>Pts</th><th>Team A</th><th>Players</th><th>Team B</th><th>Players</th><th>Score</th><th>Status</th></tr></thead><tbody id="finalRows"></tbody></table></div></section>
-
-</section>
-
-<section id="rules" class="page hidden">
-  <div class="card rules-page">
-    <div class="rules-title"><span class="eyebrow">PCBL RULES</span><h2>PCBL Rules</h2><p class="muted">Pairing, triplet, backup and badminton edge-case rules for PCBL.</p></div>
-
-    <div class="rules-grid two-col">
-      <div class="rules-section green"><h3>🤝 PAIRING RULES</h3><ul><li>Doubles pairing must be unique in every round.</li><li>The same two players cannot form a doubles pair again in a subsequent round.</li><li><b>Repeated pairing penalty:</b> If the same two players are paired again, whether by mistake or deliberately, the <b>opposite team is awarded 1 point</b>.</li><li>Every player should play only once in each round, unless an approved unavailability rule requires a repeat.</li><li>Pairings should be planned across all rounds to maximize variety and fairness.</li></ul></div>
-      <div class="rules-section orange"><h3>📝 PAIRING SUBMISSION & PLAYING ORDER</h3><ul><li>Before every match, each team must submit its complete player pairing and playing sequence to the umpire.</li><li>The submission must clearly mention Women’s Doubles pairing, Triplet players and 15+15 sequence, all Men’s Doubles pairings, and the order in which the pairs will play.</li><li>Once submitted, the pairing and playing sequence is final for that match.</li></ul></div>
-    </div>
-
-    <div class="rules-section purple"><h3>👨‍👨‍👦 TRIPLET RULES — 30 POINTS</h3><ul><li>A Triplet is a 30-point match with a deuce rule, split after the first <b>15 total rally points</b>. From 30 points onward, a <b>2-point lead</b> is required; <b>40 points wins</b>.</li><li>The <b>1st nominated player is OUT</b> after 15 total rally points, the <b>2nd nominated player is COMMON</b> and plays all 30 points, and the <b>3rd nominated player is IN</b> for the second phase.</li><li>Example: Team A selects <b>A9 → A1 → A2</b>: Phase 1 = A9 + A1; Phase 2 = A1 + A2. Team B follows the same order.</li><li>The same two players cannot be the active pair again in a subsequent round; repeated pairing, whether by mistake or deliberately, gives <b>1 point to the opposite team</b>.</li></ul></div>
-
-    <div class="rules-section navy"><h3>🚫 PLAYER UNAVAILABILITY</h3><div class="rules-grid three-col">
-      <div class="rule"><b>1 PLAYER UNAVAILABLE</b><ul><li>8 players remain.</li><li>Form 4 unique pairs.</li><li>3 pairs play Men’s Doubles.</li><li>The 4th combination is used for the 30-point Triplet.</li><li>Pairing rules still apply.</li></ul></div>
-      <div class="rule"><b>2 PLAYERS UNAVAILABLE</b><ul><li>7 players remain.</li><li>One suitable player may repeat to create the required combinations.</li><li>Maintain 4 unique pairs wherever possible.</li><li>The repeating player should not create a previously used pair.</li><li>The 4th combination is used for the 30-point Triplet.</li></ul></div>
-      <div class="rule"><b>3 PLAYERS UNAVAILABLE</b><ul><li>6 players remain.</li><li>The Triplet becomes a BYE for the opposition.</li></ul></div>
-    </div></div>
-
-    <div class="rules-section blue"><h3>📅 7-MATCH UNIQUE PAIRING PLAN — REFERENCE</h3><p class="muted">This is the approved 9-player pairing reference from the PCBL pairing sheet.</p><div class="tablewrap"><table class="pairing-table"><thead><tr><th>Match</th><th>Men’s Doubles 1</th><th>Men’s Doubles 2</th><th>Men’s Doubles 3</th><th>Triplet — First 15</th><th>Triplet — Next 15</th><th>Common Player</th></tr></thead><tbody>
-<tr><td>1</td><td>A2 + A8</td><td>A4 + A5</td><td>A7 + A9</td><td>A1 + A6</td><td>A3 + A6</td><td>A6</td></tr>
-<tr><td>2</td><td>A2 + A6</td><td>A3 + A7</td><td>A4 + A9</td><td>A5 + A8</td><td>A1 + A5</td><td>A5</td></tr>
-<tr><td>3</td><td>A2 + A9</td><td>A3 + A5</td><td>A4 + A6</td><td>A1 + A8</td><td>A1 + A7</td><td>A8</td></tr>
-<tr><td>4</td><td>A1 + A9</td><td>A4 + A7</td><td>A6 + A8</td><td>A2 + A3</td><td>A2 + A5</td><td>A2</td></tr>
-<tr><td>5</td><td>A1 + A4</td><td>A3 + A8</td><td>A5 + A9</td><td>A2 + A7</td><td>A6 + A7</td><td>A7</td></tr>
-<tr><td>6</td><td>A1 + A2</td><td>A5 + A7</td><td>A6 + A9</td><td>A4 + A8</td><td>A3 + A4</td><td>A8</td></tr>
-<tr><td>7</td><td>A1 + A3</td><td>A2 + A4</td><td>A5 + A6</td><td>A8 + A9</td><td>A7 + A8</td><td>A8</td></tr>
-</tbody></table></div><p class="success">✓ Across the 7-match reference plan, 35 unique pair relationships are used; the only unused pair is A3 + A9.</p></div>
-
-    <div class="rules-section cream"><h3>🛡️ BACKUP PLAYER RULE</h3><ul><li>If any player backs out before the tournament, the designated backup player will join the team if available.</li><li>Once the backup player joins, they become a regular team player for the tournament.</li><li>The same pairing and Triplet rules apply to the backup player.</li></ul></div>
-
-    <div class="rules-section edge"><h3>🏸 BADMINTON DOUBLES — EDGE CASE RULES</h3><div class="rules-grid two-col">
-      <div class="rule"><b>Service</b><ul><li>Server misses the shuttle while attempting to serve → Fault; receiver wins the rally.</li><li>Shuttle touches the net during service and lands in the correct service court → Legal service; play continues.</li><li>Shuttle touches the net during service but does not cross → Fault.</li><li>Shuttle lands on the service line → In.</li><li>Shuttle lands outside the service court → Out.</li><li>Wrong player receives → Fault on the receiving side.</li><li>Server serves from wrong service court → Fault.</li><li>Receiver moves before the serve → Fault.</li><li>Server lifts a foot before striking → Fault.</li><li>Serve above legal service height → Fault.</li></ul></div>
-      <div class="rule"><b>During the rally</b><ul><li>Shuttle touches the net and goes over → Legal; play continues.</li><li>Shuttle rolls along the top of the net and falls on opponent’s side → Legal if it reaches the opponent’s side.</li><li>Shuttle gets stuck in the net → Rally ends; side responsible loses the rally.</li><li>Shuttle lands exactly on any boundary line → In.</li><li>Shuttle hits ceiling, wall, light, fan or another obstacle → Fault.</li><li>Shuttle touches player’s body/clothing → Fault.</li><li>Shuttle touches racket frame instead of strings → Legal.</li><li>Shuttle is hit twice by same player → Fault.</li><li>Shuttle accidentally touches both partners’ rackets → Fault.</li><li>Players hit shuttle simultaneously → Fault.</li><li>Shuttle is carried or slung on racket → Fault.</li><li>Player deliberately catches shuttle → Fault.</li></ul></div>
-      <div class="rule"><b>Net rules</b><ul><li>Player touches net with racket, body or clothing → Fault.</li><li>Racket crosses over the net after hitting shuttle → Legal if the shuttle was first struck on the player’s own side.</li><li>Player reaches over the net before hitting shuttle → Fault.</li><li>Racket follows through over the net after legal contact → Legal.</li><li>Player’s body crosses under the net without obstructing opponent → Legal.</li><li>Player obstructs opponent under the net → Fault.</li></ul></div>
-      <div class="rule"><b>Doubles-specific</b><ul><li>Wrong player serves → Fault.</li><li>Wrong player receives → Fault.</li><li>Partner returns the serve instead of the designated receiver → Fault.</li><li>Partners collide → Play continues unless a fault occurs.</li><li>Partners’ rackets collide → Play continues if only one legal hit is made.</li></ul></div>
-    </div><div class="let"><b>LET — REPLAY THE RALLY</b><span>A let may be called for an agreed qualifying interruption such as the receiver not being ready and not attempting the return, both sides committing a fault simultaneously, shuttle break during play, external interference, or when the umpire stops play.</span></div></div>
-
-    <div class="rules-section blue"><h3>🏆 MATCH-WIN POINT SYSTEM</h3><ul><li>Every individual match win awards <b>1 team point</b>.</li><li>Each team plays 5 team matches in the league stage, with 5 individual matches in each team match.</li><li>Therefore, <b>25 match points are available to each team</b> across the league stage.</li><li>League standings are determined by total match-win points.</li><li>If teams finish level on points, the applicable PCBL tie-break procedure will be used.</li></ul></div>
-<div class="rules-section standard"><h3>📖 PCBL SCORING & COURT RULES</h3><ul><li><b>Each match is 1 set of 21 points</b> — there is no best-of-3-games format in PCBL.</li><li>Rally-point scoring applies: the side winning each rally gets 1 point.</li><li>At 20-all, a side must gain a 2-point lead to win.</li><li>At 29-all, the side scoring the <b>30th point wins</b>.</li><li><b>Court ends are changed when a side first reaches 11 points.</b></li><li>Doubles service and service-court rotation follow the Laws of Badminton, except where a specific PCBL rule overrides them.</li></ul><p class="muted">PCBL-specific rules take precedence over standard BWF rules wherever they differ.</p></div>
-  </div>
-</section>
+  <section id="rules" class="page hidden"><div class="card"><h2>PCBL Rules</h2>
+    <div class="rule"><b>Unlimited roster</b><p>Each team may have any number of registered players.</p></div>
+    <div class="rule"><b>Match types</b><p>Men's Singles, Women's Singles, Men's Doubles, Women's Doubles and Mixed Doubles.</p></div>
+    <div class="rule"><b>Lineups</b><p>Singles use one player per side; doubles use two. Match lineups are displayed once entered by the tournament scorer.</p></div>
+    <div class="rule"><b>Scoring</b><p>Best of 3 games, 21-point badminton scoring. At 20-all, a 2-point lead is required, with a maximum of 30.</p></div>
+    <div class="rule"><b>Standings</b><p>A completed match awards one match win to the winning team.</p></div>
+  </div></section>
 </main>
-<div id="teamDetailModal" class="modal hidden"><div class="modalbox team-detail-modal"><div class="cardhead"><h2 id="teamDetailTitle">Team Details</h2><button class="btn" id="closeTeamDetail">Close</button></div><div id="teamDetailBody"></div></div></div>
-<script src="config.js"></script><script src="finals.js?v=15"></script><script src="public.js?v=15"></script>
+<script src="config.js?v=20260905"></script><script src="public.js?v=20260905-triplet"></script>
 </body></html>
