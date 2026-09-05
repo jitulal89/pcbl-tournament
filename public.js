@@ -21,6 +21,9 @@
     const gs = matchGames(m.id);
     if(!gs.length) return null;
     const g=gs[0], a=Number(g.score_a||0), b=Number(g.score_b||0);
+    // For already completed Triplet matches, the recorded higher score is the winner.
+    // This preserves historical PCBL results such as 30-29.
+    if(m.status==='done' && isTriplet(m) && a!==b) return a>b?m.team_a:m.team_b;
     return complete(m,a,b) && a!==b ? (a>b?m.team_a:m.team_b) : null;
   }
   function scoreText(m) { const gs=matchGames(m.id); if(!gs.length) return '—'; return gs.map(g=>`${g.score_a}-${g.score_b}`).join(' · '); }

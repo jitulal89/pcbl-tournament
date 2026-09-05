@@ -15,7 +15,7 @@
 <section id="loginView" class="login"><div class="login-card">
   <div class="logo big">PCBL</div><h1>PCBL Tournament</h1><p>Admin & scorer access</p>
   <form id="loginForm"><input id="email" type="email" placeholder="Email" autocomplete="username" required><input id="password" type="password" placeholder="Password" autocomplete="current-password" required><button id="loginBtn" class="btn dark full">Sign in</button></form>
-  <button id="demoBtn" class="link">Continue with demo data</button><p id="loginMsg" class="error"></p>
+  <p class="muted admin-auth-note">Admin access requires an authorized Supabase account.</p><p id="loginMsg" class="error"></p>
 </div></section>
 <section id="mainView" class="hidden">
   <div class="hero"><div><span class="eyebrow">TOURNAMENT CONTROL</span><h1 id="tournamentTitle">PCBL Finals</h1><p>Teams, unlimited rosters, fixtures, lineups and live scoring.</p></div><div class="heroBtns"><button id="addMatchBtn" class="btn dark">+ Add Match</button><button class="btn" data-page="live">🔴 Live Courts</button></div></div>

@@ -164,7 +164,7 @@
       const aCls=done?(w===m.a?'result-win':w===m.b?'result-loss':'') : '';
       const bCls=done?(w===m.b?'result-win':w===m.a?'result-loss':'') : '';
       const score=fixtureScore(m);
-      return `<tr><td>${esc(m.time||'—')}</td><td>${esc(m.court||'—')}</td><td>${esc(matchType(m))}</td><td class="${aCls}"><b>${esc(a?.name||'—')}</b></td><td class="${bCls}"><b>${esc(b?.name||'—')}</b></td><td><span class="${aCls}">${esc(ap||'—')}</span> vs <span class="${bCls}">${esc(bp||'—')}</span></td><td><span class="status ${m.status}">${esc(m.status)}</span></td><td><b class="${done&&w===m.a?'result-win':done&&w===m.b?'result-loss':''}">${esc(score)}</b></td><td>${m.status!=='done'&&m.status!=='cancelled'?`<button class="btn small" data-score="${m.id}">${m.status==='live'?'Score':'Start'}</button>`:'✓'}</td></tr>`;
+      return `<tr><td>${esc(m.time||'—')}</td><td>${esc(m.court||'—')}</td><td>${esc(matchType(m))}</td><td class="${aCls}"><b>${esc(a?.name||'—')}</b></td><td class="${bCls}"><b>${esc(b?.name||'—')}</b></td><td><span class="${aCls}">${esc(ap||'—')}</span> vs <span class="${bCls}">${esc(bp||'—')}</span></td><td><span class="status ${m.status}">${esc(m.status)}</span></td><td><b class="${done&&w===m.a?'result-win':done&&w===m.b?'result-loss':''}">${esc(score)}</b>${done&&w?`<br><small class="${w===m.a?'result-win':'result-loss'}">Winner: ${esc(team(w)?.name||'')}</small>`:''}</td><td>${m.status!=='done'&&m.status!=='cancelled'?`<button class="btn small" data-score="${m.id}">${m.status==='live'?'Score':'Start'}</button>`:'✓'}</td></tr>`;
     }).join('') || '<tr><td colspan="9" class="muted">No fixtures yet.</td></tr>';
 
     $('liveGrid').innerHTML = state.matches.filter(m=>m.status==='live').map(courtHtml).join('') || '<div class="card"><b>No live matches.</b><p class="muted">Start a fixture from Fixtures.</p></div>';
@@ -570,7 +570,7 @@
   }
 
   async function boot(){
-    if(!window.supabase || !cfg.SUPABASE_URL || !cfg.SUPABASE_PUBLISHABLE_KEY){ $('connection').textContent='CONFIG ERROR'; $('loginMsg').textContent='Supabase configuration is missing. Use Demo Data or check config.js.'; return; }
+    if(!window.supabase || !cfg.SUPABASE_URL || !cfg.SUPABASE_PUBLISHABLE_KEY){ $('connection').textContent='CONFIG ERROR'; $('loginMsg').textContent='Supabase configuration is missing. Check config.js.'; return; }
     sb=window.supabase.createClient(cfg.SUPABASE_URL,cfg.SUPABASE_PUBLISHABLE_KEY);
     const {data,error}=await sb.auth.getSession(); if(error) console.error(error);
     if(data?.session){
@@ -590,7 +590,6 @@
     if(error){$('loginMsg').textContent=error.message;return;}
     location.reload();
   });
-  $('demoBtn').addEventListener('click',setDemo);
   $('logoutBtn').addEventListener('click',async()=>{if(sb) await sb.auth.signOut();location.reload();});
   $('addMatchBtn').addEventListener('click',openMatchModal); $('addMatchBtn2').addEventListener('click',openMatchModal);
   document.querySelectorAll('nav button,[data-page="live"]').forEach(b=>b.addEventListener('click',()=>show(b.dataset.page)));
