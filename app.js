@@ -60,6 +60,10 @@
   function matchWinner(m){
     const s=currentScore(m);
     if(s[0]===s[1]) return null;
+    // Historical completed Triplet matches such as 30-29 are already official
+    // results. Treat the higher score as the winner for display/standings.
+    // New/live Triplet matches still use the 2-point-lead-or-40 rule.
+    if(m.status === 'done' && isTriplet(m)) return s[0]>s[1]?m.a:m.b;
     if(!isMatchComplete(m,s[0],s[1])) return null;
     return s[0]>s[1]?m.a:m.b;
   }
