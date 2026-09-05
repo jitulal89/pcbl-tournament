@@ -1,11 +1,10 @@
-PCBL PUBLIC TRIPLET DISPLAY FIX V2
+# PCBL 2026 Update
 
-Replace ONLY these two files in the GitHub Pages site:
-1. index.html
-2. public.js
+Includes:
+- Triplet deuce scoring: after 30, 2-point lead required; 40 wins.
+- Correct Triplet completion logic in Admin and Public.
+- Done-match final scores shown in Admin fixtures.
+- Winner/loser color coding for done fixtures and team-detail views.
+- Existing League, Triplet, Quadruple, Finals and viewer-count functionality retained.
 
-This version:
-- Forces cache-busting for public.js.
-- Displays Men's Triplet as Men's Triplet in Dashboard, Live Scores and Fixtures.
-- Shows all three Triplet players with OUT / COMMON / IN roles instead of making the match look like a doubles match.
-- Preserves historical completed scores such as 30-29 with the higher-score team as winner.
+Run `triplet_deuce_update.sql` once in Supabase SQL Editor to update the scoring RPC safely.
