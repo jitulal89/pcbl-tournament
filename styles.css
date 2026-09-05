@@ -16,3 +16,49 @@
 
 /* Triplet result card - preserves the earlier clickable standings and red/green result UI */
 .triplet-result-card{border:1px solid #e3e7ee;border-radius:18px;background:#fff;overflow:hidden;box-shadow:0 8px 24px #17203310;margin-bottom:10px}.triplet-result-head{display:flex;justify-content:space-between;align-items:center;padding:16px 18px;border-bottom:1px solid #edf0f4;gap:12px}.triplet-result-head>b{font-size:20px}.triplet-result-body{display:grid;grid-template-columns:1fr auto 1fr;gap:16px;align-items:stretch;padding:18px}.triplet-result-side{border:1px solid #e3e7ee;border-radius:15px;padding:16px;background:#fafbfc}.triplet-result-side.winner-side{background:#f0fdf4;border-color:#16a34a}.triplet-result-side.loser-side{background:#fff1f2;border-color:#ef4444}.triplet-teamline{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:18px}.result-badge{padding:7px 11px;border-radius:999px;font-size:11px;font-weight:900;white-space:nowrap}.win-badge{background:#dcfce7;color:#15803d}.loss-badge{background:#fee2e2;color:#b91c1c}.triplet-result-side hr{border:0;border-top:1px solid #e5e7eb;margin:14px 0}.triplet-pair{display:flex;flex-direction:column;gap:4px;margin:9px 0}.triplet-pair b{font-size:10px;color:#6b7280;letter-spacing:.08em}.triplet-pair span{font-weight:700}.triplet-score{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:125px}.triplet-score strong{font-size:30px;line-height:1.1}.triplet-score small{color:#6b7280;margin-top:6px}.triplet-result-foot{display:flex;justify-content:space-between;padding:12px 18px;border-top:1px solid #edf0f4;color:#6b7280;font-size:12px;gap:10px}.standing-team{cursor:pointer!important}.standing-team:hover{background:#f7f9fc!important}@media(max-width:700px){.triplet-result-body{grid-template-columns:1fr}.triplet-score{order:-1}.triplet-result-foot{flex-direction:column}}
+
+/* Public team-details polish — keep the same visual language as the Admin dashboard */
+.team-detail-modal{width:min(1080px,96vw)!important;max-width:none!important;padding:26px!important}
+.team-detail-modal>.cardhead{position:sticky;top:-26px;background:#fff;padding:8px 0 16px;z-index:2}
+.team-detail-modal #teamDetailTitle{font-size:28px;margin:0}
+.team-fixture{background:#fff;box-shadow:0 2px 8px #17203308}
+.team-fixture .fixture-main b{font-size:15px}
+.team-fixture .fixture-vs b{font-size:16px}
+.team-fixture .fixture-vs strong{font-size:20px}
+.team-fixture .fixture-players span{font-weight:600}
+
+/* Triplet result card: desktop scorecard + clean mobile layout */
+.triplet-result-card{width:100%;margin:0 0 12px;box-shadow:0 8px 24px #17203312}
+.triplet-result-head{padding:18px 20px}
+.triplet-result-head>div>b{font-size:21px}
+.triplet-result-body{grid-template-columns:minmax(0,1fr) 150px minmax(0,1fr);gap:18px;padding:20px}
+.triplet-result-side{min-width:0;padding:18px}
+.triplet-result-side.winner-side{border-width:2px}
+.triplet-result-side.loser-side{border-width:2px}
+.triplet-teamline b{font-size:20px}
+.triplet-pair{display:block!important;margin:12px 0!important}
+.triplet-pair b{display:block!important;margin-bottom:5px!important;font-size:11px!important}
+.triplet-pair span{display:block!important;line-height:1.4!important;font-size:15px!important;overflow-wrap:anywhere}
+.triplet-score{min-width:150px}
+.triplet-score strong{font-size:38px}
+.triplet-result-foot{padding:13px 20px}
+
+@media(max-width:700px){
+  .modal{padding:8px}
+  .modalbox.team-detail-modal{width:100%!important;max-height:94vh;border-radius:20px;padding:18px!important}
+  .team-detail-modal>.cardhead{top:-18px;padding:4px 0 14px}
+  .team-detail-modal #teamDetailTitle{font-size:25px;line-height:1.2}
+  .team-summary{gap:8px;margin:12px 0 18px}
+  .team-summary>div{padding:12px}
+  .team-summary b{font-size:23px}
+  .triplet-result-head{padding:15px;align-items:flex-start}
+  .triplet-result-head>div>b{font-size:18px}
+  .triplet-result-body{grid-template-columns:1fr!important;gap:10px;padding:14px}
+  .triplet-score{order:-1;min-width:0;padding:5px 0 10px}
+  .triplet-score strong{font-size:34px}
+  .triplet-result-side{padding:14px}
+  .triplet-teamline{font-size:17px}
+  .triplet-teamline b{font-size:19px}
+  .triplet-pair span{font-size:14px}
+  .triplet-result-foot{padding:11px 15px}
+}
