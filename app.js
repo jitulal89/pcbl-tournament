@@ -97,12 +97,37 @@
     const wins=played.filter(m=>matchWinner(m)===t.id).length;
     const losses=played.filter(m=>matchWinner(m)&&matchWinner(m)!==t.id).length;
     const fixtures=ms.map(m=>{
-      const isA=m.a===t.id, opp=team(isA?m.b:m.a), result=fixtureResultForTeam(m,t.id);
+      const isA=m.a===t.id;
+      const opp=team(isA?m.b:m.a);
+      const result=fixtureResultForTeam(m,t.id);
+      const teamWon=result==='WON', teamLost=result==='LOST';
+      const teamPair=(isA?(m.ap||[]):(m.bp||[])).map(id=>player(id)?.name).filter(Boolean).join(' & ') || '—';
+      const oppPair=(isA?(m.bp||[]):(m.ap||[])).map(id=>player(id)?.name).filter(Boolean).join(' & ') || '—';
       const score=fixtureScore(m);
-      const ap=(m.ap||[]).map(id=>player(id)?.name).filter(Boolean).join(' & ') || '—';
-      const bp=(m.bp||[]).map(id=>player(id)?.name).filter(Boolean).join(' & ') || '—';
-      const teamWon=result==='WON'; const teamLost=result==='LOST';
-      return `<div class="team-fixture"><div class="fixture-main"><div><b>${esc(matchType(m))}</b><div class="muted">${esc(m.time||'—')} · Court ${esc(m.court||'—')}</div></div><span class="status ${result==='WON'?'won':result==='LOST'?'lost':result.toLowerCase()}">${result}</span></div><div class="fixture-vs"><b class="${teamWon?'result-win':teamLost?'result-loss':''}">${esc(t.name)}</b><span>vs</span><b class="${teamWon?'result-loss':teamLost?'result-win':''}">${esc(opp?.name||'—')}</b><strong>${esc(score)}</strong></div><div class="fixture-players"><span class="${teamWon?'result-win':teamLost?'result-loss':''}">${esc(ap)}</span><span>·</span><span class="${teamWon?'result-loss':teamLost?'result-win':''}">${esc(bp)}</span></div></div>`;
+
+      // Completed Triplet results use the same presentation and side mapping
+      // as the Public view. This prevents the selected team's players from
+      // being coloured as the opponent's players.
+      if(isTriplet(m) && m.status==='done'){
+        const idsA=m.ap||[], idsB=m.bp||[];
+        const namesA=idsA.map(id=>player(id)?.name).filter(Boolean);
+        const namesB=idsB.map(id=>player(id)?.name).filter(Boolean);
+        const phase1A=namesA.slice(0,2).join(' + ')||'—';
+        const phase2A=namesA.length>=3?namesA.slice(1,3).join(' + '):'—';
+        const phase1B=namesB.slice(0,2).join(' + ')||'—';
+        const phase2B=namesB.length>=3?namesB.slice(1,3).join(' + '):'—';
+        const w=matchWinner(m);
+        const winName=w?team(w)?.name:'—';
+        const selectedTeamName=team(isA?m.a:m.b)?.name||'—';
+        const opponentName=opp?.name||'—';
+        const selectedPhase1=isA?phase1A:phase1B;
+        const selectedPhase2=isA?phase2A:phase2B;
+        const opponentPhase1=isA?phase1B:phase1A;
+        const opponentPhase2=isA?phase2B:phase2A;
+        return `<div class="triplet-result-card"><div class="triplet-result-head"><div><b>Men's Triplet</b><div class="muted">${esc(m.time||'—')} · Court ${esc(m.court||'—')}</div></div><span class="status done">✓ COMPLETED</span></div><div class="triplet-result-body"><div class="triplet-result-side ${teamWon?'winner-side':teamLost?'loser-side':''}"><div class="triplet-teamline"><b class="${teamWon?'result-win':teamLost?'result-loss':''}">${esc(selectedTeamName)}</b><span class="result-badge ${teamWon?'win-badge':'loss-badge'}">${teamWon?'🏆 WON':'✕ LOST'}</span></div><hr><div class="triplet-pair"><b>PHASE 1</b><span>${esc(selectedPhase1)}</span></div><div class="triplet-pair"><b>PHASE 2</b><span>${esc(selectedPhase2)}</span></div></div><div class="triplet-score"><strong>${esc(score)}</strong><small>Final Score</small></div><div class="triplet-result-side ${teamLost?'winner-side':teamWon?'loser-side':''}"><div class="triplet-teamline"><b class="${teamLost?'result-win':teamWon?'result-loss':''}">${esc(opponentName)}</b><span class="result-badge ${teamLost?'win-badge':'loss-badge'}">${teamLost?'🏆 WON':'✕ LOST'}</span></div><hr><div class="triplet-pair"><b>PHASE 1</b><span>${esc(opponentPhase1)}</span></div><div class="triplet-pair"><b>PHASE 2</b><span>${esc(opponentPhase2)}</span></div></div></div><div class="triplet-result-foot"><span>Men's Triplet · PCBL 2026</span><span>Winner: ${esc(winName)}</span></div></div>`;
+      }
+
+      return `<div class="team-fixture"><div class="fixture-main"><div><b>${esc(matchType(m))}</b><div class="muted">${esc(m.time||'—')} · Court ${esc(m.court||'—')}</div></div><span class="status ${result==='WON'?'won':result==='LOST'?'lost':result.toLowerCase()}">${result}</span></div><div class="fixture-vs"><b class="${teamWon?'result-win':teamLost?'result-loss':''}">${esc(t.name)}</b><span>vs</span><b class="${teamWon?'result-loss':teamLost?'result-win':''}">${esc(opp?.name||'—')}</b><strong>${esc(score)}</strong></div><div class="fixture-players"><span class="${teamWon?'result-win':teamLost?'result-loss':''}">${esc(teamPair)}</span><span>·</span><span class="${teamWon?'result-loss':teamLost?'result-win':''}">${esc(oppPair)}</span></div></div>`;
     }).join('') || '<p class="muted">No fixtures assigned to this team yet.</p>';
     return `<div class="team-summary"><div><span>Players</span><b>${t.players.length}</b></div><div><span>Played</span><b>${played.length}</b></div><div><span>Wins</span><b>${wins}</b></div><div><span>Losses</span><b>${losses}</b></div></div><h3>Fixtures & Results</h3><div class="team-fixtures">${fixtures}</div>`;
   }
