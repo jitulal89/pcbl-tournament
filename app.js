@@ -324,6 +324,7 @@
   //   pair and COMMON+IN pair must not have previously appeared together
   //   in a Men's Doubles, Mixed Doubles, or Triplet match.
   // - Player order does not matter: A+B is the same pair as B+A.
+  // - This restriction is for League matches; Finals are exempt.
   function pairKey(a,b){
     if(!a || !b || a===b) return null;
     return [a,b].sort().join('|');
@@ -531,11 +532,14 @@
     else if(type === "Men's Quadruple") { ap=[...document.querySelectorAll('#lineA select[data-quad^="A-"]')].map(x=>x.value).filter(Boolean); bp=[...document.querySelectorAll('#lineB select[data-quad^="B-"]')].map(x=>x.value).filter(Boolean); }
     else { ap=[...document.querySelectorAll('#lineA input:checked')].map(x=>x.value); bp=[...document.querySelectorAll('#lineB input:checked')].map(x=>x.value); }
     const errA=validateLineup(effectiveType,ap,a), errB=validateLineup(effectiveType,bp,b); if(errA||errB){alert(errA||errB);return;}
-    if(stage==='finals'){
-      const uA=await validateFinalPlayerUniqueness(finalNo,a,ap), uB=await validateFinalPlayerUniqueness(finalNo,b,bp); if(uA||uB){alert(uA||uB);return;}
+    // Finals: repeated players and repeated pairings are allowed.
+    // League-stage pair uniqueness rules remain unchanged.
+    // Pair-repeat restriction applies to League matches only.
+    // Finals intentionally have NO pairing-repeat restriction.
+    if(stage!=='finals'){
+      const pairErrA=await validatePairUniqueness(ap,a,effectiveType), pairErrB=await validatePairUniqueness(bp,b,effectiveType);
+      if(pairErrA||pairErrB){alert(pairErrA||pairErrB);return;}
     }
-    const pairErrA=await validatePairUniqueness(ap,a,effectiveType), pairErrB=await validatePairUniqueness(bp,b,effectiveType);
-    if(pairErrA||pairErrB){alert(pairErrA||pairErrB);return;}
     const points=stage==='finals'?finalPoints(finalNo):(effectiveType==="Men's Quadruple"?60:effectiveType==="Men's Triplet"?30:21);
     if(state.mode==='demo'){
       state.matches.push({id:'m'+Date.now(),time:$('mtTime').value,court:$('mtCourt').value,type:effectiveType,a,b,ap,bp,status:'upcoming',game:0,sets:[[0,0],[0,0],[0,0]],history:[],stage,final_no:finalNo,points_to_win:points}); closeModal(); render(); return;
