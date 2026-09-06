@@ -62,3 +62,13 @@
   .triplet-pair span{font-size:14px}
   .triplet-result-foot{padding:11px 15px}
 }
+
+/* FINAL RESULT COLOUR SYSTEM - Admin + Public */
+.result-win{color:#15803d!important;font-weight:900!important}
+.result-loss{color:#dc2626!important;font-weight:900!important}
+.status.won{color:#15803d!important}
+.status.lost{color:#dc2626!important}
+.triplet-result-side.winner-side .triplet-teamline>b{color:#15803d!important}
+.triplet-result-side.loser-side .triplet-teamline>b{color:#dc2626!important}
+.triplet-result-side.winner-side .triplet-pair span{color:#15803d}
+.triplet-result-side.loser-side .triplet-pair span{color:#dc2626}

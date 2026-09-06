@@ -83,6 +83,7 @@
     const w=matchWinner(m);
     return w===teamId?'WON':w?'LOST':'DRAW';
   }
+  function resultClass(result){ return result==='WON'?'result-win':result==='LOST'?'result-loss':''; }
   function fixtureScore(m){
     const s=currentScore(m);
     return `${s[0]} - ${s[1]}`;
@@ -101,7 +102,7 @@
       const ap=(m.ap||[]).map(id=>player(id)?.name).filter(Boolean).join(' & ') || '—';
       const bp=(m.bp||[]).map(id=>player(id)?.name).filter(Boolean).join(' & ') || '—';
       const teamWon=result==='WON'; const teamLost=result==='LOST';
-      return `<div class="team-fixture"><div class="fixture-main"><div><b>${esc(matchType(m))}</b><div class="muted">${esc(m.time||'—')} · Court ${esc(m.court||'—')}</div></div><span class="status ${result==='WON'?'done':result==='LOST'?'live':result.toLowerCase()}">${result}</span></div><div class="fixture-vs"><b class="${teamWon?'result-win':teamLost?'result-loss':''}">${esc(t.name)}</b><span>vs</span><b class="${teamWon?'result-loss':teamLost?'result-win':''}">${esc(opp?.name||'—')}</b><strong>${esc(score)}</strong></div><div class="fixture-players"><span class="${teamWon?'result-win':teamLost?'result-loss':''}">${esc(ap)}</span><span>·</span><span class="${teamWon?'result-loss':teamLost?'result-win':''}">${esc(bp)}</span></div></div>`;
+      return `<div class="team-fixture"><div class="fixture-main"><div><b>${esc(matchType(m))}</b><div class="muted">${esc(m.time||'—')} · Court ${esc(m.court||'—')}</div></div><span class="status ${result==='WON'?'won':result==='LOST'?'lost':result.toLowerCase()}">${result}</span></div><div class="fixture-vs"><b class="${teamWon?'result-win':teamLost?'result-loss':''}">${esc(t.name)}</b><span>vs</span><b class="${teamWon?'result-loss':teamLost?'result-win':''}">${esc(opp?.name||'—')}</b><strong>${esc(score)}</strong></div><div class="fixture-players"><span class="${teamWon?'result-win':teamLost?'result-loss':''}">${esc(ap)}</span><span>·</span><span class="${teamWon?'result-loss':teamLost?'result-win':''}">${esc(bp)}</span></div></div>`;
     }).join('') || '<p class="muted">No fixtures assigned to this team yet.</p>';
     return `<div class="team-summary"><div><span>Players</span><b>${t.players.length}</b></div><div><span>Played</span><b>${played.length}</b></div><div><span>Wins</span><b>${wins}</b></div><div><span>Losses</span><b>${losses}</b></div></div><h3>Fixtures & Results</h3><div class="team-fixtures">${fixtures}</div>`;
   }
@@ -175,7 +176,7 @@
       fixtures:state.matches.filter(m=>m.a===t.id||m.b===t.id).length
     })).sort((x,y)=>y.wins-x.wins || x.team.name.localeCompare(y.team.name));
     $('standings').innerHTML = standing.map((x,i)=>`<button type="button" class="player standing-team" data-admin-team-details="${esc(x.team.id)}"><span><b>${i+1}. ${esc(x.team.name)}</b><small>${x.played} played · ${x.team.players.length} players</small></span><b>${x.wins} win${x.wins===1?'':'s'}</b></button>`).join('') || '<p class="muted">No teams.</p>';
-    $('schedule').innerHTML = state.matches.slice().sort((a,b)=>(a.time||'').localeCompare(b.time||'')).map(m=>`<div class="player"><span><b>${esc(m.time||'—')}</b> · Court ${esc(m.court||'—')}<br>${esc(matchType(m))} · ${esc(team(m.a)?.name||'—')} vs ${esc(team(m.b)?.name||'—')}</span><span class="status ${m.status}">${esc(m.status)}</span></div>`).join('') || '<p class="muted">No matches.</p>';
+    $('schedule').innerHTML = state.matches.slice().sort((a,b)=>(a.time||'').localeCompare(b.time||'')).map(m=>{const w=m.status==='done'?matchWinner(m):null;const aCls=w===m.a?'result-win':w===m.b?'result-loss':'';const bCls=w===m.b?'result-win':w===m.a?'result-loss':'';return `<div class="player"><span><b>${esc(m.time||'—')}</b> · Court ${esc(m.court||'—')}<br>${esc(matchType(m))} · <b class="${aCls}">${esc(team(m.a)?.name||'—')}</b> vs <b class="${bCls}">${esc(team(m.b)?.name||'—')}</b></span><span class="status ${m.status}">${esc(m.status)}</span></div>`;}).join('') || '<p class="muted">No matches.</p>';
   }
 
   function courtHtml(m){
