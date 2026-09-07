@@ -218,3 +218,25 @@ nav a{border:0;background:none;padding:13px 16px;font-weight:800;color:#6b7280;c
 
 /* Anonymous suggestions */
 .feedback-card{max-width:760px;margin:0 auto}.feedback-hero{display:flex;gap:14px;align-items:flex-start;margin-bottom:20px}.feedback-icon{width:48px;height:48px;display:grid;place-items:center;border-radius:14px;background:#eef4ff;font-size:24px;flex:0 0 auto}.feedback-card label{display:block;font-weight:800;margin:0 0 16px}.feedback-card textarea{display:block;width:100%;min-height:125px;margin-top:8px;padding:13px 14px;border:1px solid #dfe4ec;border-radius:12px;resize:vertical;font:inherit;box-sizing:border-box}.feedback-card textarea:focus{outline:2px solid #b8cdfd;border-color:#6f95e8}.feedback-card fieldset{border:0;padding:0;margin:8px 0 18px}.feedback-card legend{font-weight:800}.rating{display:flex;gap:5px;margin-top:5px}.rating button{border:0;background:transparent;font-size:34px;line-height:44px;min-width:44px;min-height:44px;padding:0;cursor:pointer}.feedback-submit{width:100%;min-height:46px}.feedback-msg{min-height:22px;text-align:center;font-weight:700;margin:12px 0 0}.suggestions-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0 18px}.suggestions-summary>div{border:1px solid #e2e7ef;border-radius:12px;background:#f8fafc;padding:13px}.suggestions-summary span{display:block;color:#6b7280;font-size:12px;font-weight:700}.suggestions-summary b{display:block;font-size:24px;margin-top:3px}.suggestions-list{display:grid;gap:12px}.suggestion-admin-card{border:1px solid #e2e7ef;border-radius:14px;padding:15px;background:#fff}.suggestion-admin-head{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:10px}.suggestion-rating{font-size:20px;letter-spacing:1px}.suggestion-date{font-size:12px;color:#7b8494}.suggestion-block{margin-top:10px}.suggestion-block b{display:block;font-size:12px;color:#667085;margin-bottom:4px}.suggestion-block p{margin:0;white-space:pre-wrap;line-height:1.5}.@media(max-width:700px){.feedback-hero{gap:10px}.feedback-icon{width:42px;height:42px;font-size:21px}.feedback-card textarea{min-height:110px;font-size:16px}.suggestions-summary{grid-template-columns:1fr 1fr}.suggestions-summary>div:last-child{grid-column:1/-1}}
+
+
+/* PCBL V20 - reliable mobile More menu */
+@media (max-width:700px){
+  .mobile-bottom-nav .mobile-more{position:relative;min-width:0}
+  .mobile-bottom-nav .mobile-more-btn{
+    appearance:none;-webkit-appearance:none;border:0;background:transparent;font:inherit;color:#667085;
+    width:100%;min-width:0;min-height:52px;padding:6px 3px;border-radius:12px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+    cursor:pointer;user-select:none;
+  }
+  .mobile-bottom-nav .mobile-more-btn span{font-size:10px;line-height:1.1;font-weight:800}
+  .mobile-bottom-nav .mobile-more-btn.active{background:#111827;color:#fff}
+  .mobile-bottom-nav .mobile-more-menu[hidden]{display:none!important}
+  .mobile-bottom-nav .mobile-more-menu{
+    position:absolute;right:0;bottom:59px;width:190px;max-width:calc(100vw - 28px);padding:7px;
+    border:1px solid #dfe5ee;border-radius:14px;background:#fff;
+    box-shadow:0 10px 28px rgba(16,24,40,.18);z-index:10001;
+  }
+  .mobile-bottom-nav .mobile-more-menu a{display:block;padding:12px 11px;border-radius:10px;color:#344054;text-decoration:none;font-weight:800;font-size:13px;line-height:1.2}
+  .mobile-bottom-nav .mobile-more-menu a + a{margin-top:3px}
+}

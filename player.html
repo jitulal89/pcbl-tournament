@@ -32,7 +32,7 @@
 <script src="config.js"></script>
 <script src="player-profile.js?v=16"></script>
 
-<nav class="mobile-bottom-nav" aria-label="Mobile navigation"><a data-page="dashboard" href="index.html">🏠<span>Home</span></a><a data-page="live" href="live.html">🔴<span>Live</span></a><a data-page="playerstats" href="player-stats.html">🏅<span>Stats</span></a><a data-page="fixtures" href="fixtures.html">📅<span>Fixtures</span></a><details class="mobile-more"><summary>☰<span>More</span></summary><div class="mobile-more-menu"><a data-page="teams" href="teams.html">👥 Teams</a><a data-page="rules" href="rules_public.html">📖 Rules</a><a data-page="finalformat" href="final_format.html">🏆 Final Format</a><a data-page="suggestions" href="suggestions.html">💬 Suggestions</a></div></details></nav>
+<nav class="mobile-bottom-nav" aria-label="Mobile navigation"><a data-page="dashboard" href="index.html">🏠<span>Home</span></a><a data-page="live" href="live.html">🔴<span>Live</span></a><a data-page="playerstats" href="player-stats.html">🏅<span>Stats</span></a><a data-page="fixtures" href="fixtures.html">📅<span>Fixtures</span></a><div class="mobile-more"><button type="button" class="mobile-more-btn" aria-expanded="false">☰<span>More</span></button><div class="mobile-more-menu" hidden><a data-page="teams" href="teams.html">👥 Teams</a><a data-page="rules" href="rules_public.html">📖 Rules</a><a data-page="finalformat" href="final_format.html">🏆 Final Format</a><a data-page="suggestions" href="suggestions.html">💬 Suggestions</a></div></div></nav>
 <script>
 (function(){
   function activePage(){
@@ -46,5 +46,7 @@
   window.addEventListener('popstate',mark); mark();
 })();
 </script>
-</body>
+<script>
+(()=>{const nav=document.querySelector('.mobile-bottom-nav');if(!nav)return;const more=nav.querySelector('.mobile-more');const btn=nav.querySelector('.mobile-more-btn');const menu=nav.querySelector('.mobile-more-menu');if(!more||!btn||!menu)return;const close=()=>{menu.hidden=true;btn.setAttribute('aria-expanded','false');btn.classList.remove('active')};btn.addEventListener('click',e=>{e.preventDefault();const open=menu.hidden;menu.hidden=!open;btn.setAttribute('aria-expanded',String(open));btn.classList.toggle('active',open)});menu.querySelectorAll('a').forEach(a=>a.addEventListener('click',close));document.addEventListener('click',e=>{if(!more.contains(e.target))close()});})();
+</script></body>
 </html>

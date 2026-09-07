@@ -90,9 +90,9 @@
 </div>
 </section></main>
 <div id="modal" class="modal hidden"><div id="modalBox" class="modalbox"></div></div>
-<script src="config.js?v=19"></script><script src="finals.js?v=18"></script><script src="app.js?v=19"></script><script src="suggestions-admin.js?v=19"></script>
+<script src="config.js?v=20"></script><script src="finals.js?v=18"></script><script src="app.js?v=20"></script><script src="suggestions-admin.js?v=20"></script>
 
-<nav class="mobile-bottom-nav" aria-label="Mobile navigation"><a data-page="dashboard" href="?page=dashboard">🏠<span>Home</span></a><a data-page="live" href="?page=live">🔴<span>Live</span></a><a data-page="playerstats" href="?page=playerstats">🏅<span>Stats</span></a><a data-page="fixtures" href="?page=fixtures">📅<span>Fixtures</span></a><details class="mobile-more"><summary>☰<span>More</span></summary><div class="mobile-more-menu"><a data-page="teams" href="?page=teams">👥 Teams</a><a data-page="rules" href="?page=rules">📖 Rules</a><a data-page="finalformat" href="?page=finalformat">🏆 Final Format</a><a data-page="suggestions" href="?page=suggestions">💬 Suggestions</a></div></details></nav>
+<nav class="mobile-bottom-nav" aria-label="Mobile navigation"><a data-page="dashboard" href="?page=dashboard">🏠<span>Home</span></a><a data-page="live" href="?page=live">🔴<span>Live</span></a><a data-page="playerstats" href="?page=playerstats">🏅<span>Stats</span></a><a data-page="fixtures" href="?page=fixtures">📅<span>Fixtures</span></a><div class="mobile-more"><button type="button" class="mobile-more-btn" aria-expanded="false">☰<span>More</span></button><div class="mobile-more-menu" hidden><a data-page="teams" href="?page=teams">👥 Teams</a><a data-page="rules" href="?page=rules">📖 Rules</a><a data-page="finalformat" href="?page=finalformat">🏆 Final Format</a><a data-page="suggestions" href="?page=suggestions">💬 Suggestions</a></div></div></nav>
 <script>
 (function(){
   function activePage(){
@@ -106,4 +106,6 @@
   window.addEventListener('popstate',mark); mark();
 })();
 </script>
-</body></html>
+<script>
+(()=>{const nav=document.querySelector('.mobile-bottom-nav');if(!nav)return;const more=nav.querySelector('.mobile-more');const btn=nav.querySelector('.mobile-more-btn');const menu=nav.querySelector('.mobile-more-menu');if(!more||!btn||!menu)return;const close=()=>{menu.hidden=true;btn.setAttribute('aria-expanded','false');btn.classList.remove('active')};btn.addEventListener('click',e=>{e.preventDefault();const open=menu.hidden;menu.hidden=!open;btn.setAttribute('aria-expanded',String(open));btn.classList.toggle('active',open)});menu.querySelectorAll('a').forEach(a=>a.addEventListener('click',close));document.addEventListener('click',e=>{if(!more.contains(e.target))close()});})();
+</script></body></html>
