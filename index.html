@@ -17,12 +17,12 @@
     <div class="heroBtns"><a class="btn dark" href="live.html">🔴 Watch Live Scores</a></div>
   </section>
   <nav id="publicNav">
-    <button data-page="dashboard" class="active">Dashboard</button>
-    <button data-page="live">🔴 Live Scores</button>
-    <button data-page="playerstats">🏅 Player Stats</button>
-    <button data-page="fixtures">Fixtures</button>
-    <button data-page="teams">Teams & Players</button>
-    <button data-page="rules">PCBL Rules</button><button type="button" data-page="finalformat">Final Format</button>
+    <a data-page="dashboard" href="?page=dashboard">Dashboard</a>
+    <a data-page="live" href="?page=live">🔴 Live Scores</a>
+    <a data-page="playerstats" href="?page=playerstats">🏅 Player Stats</a>
+    <a data-page="fixtures" href="?page=fixtures">Fixtures</a>
+    <a data-page="teams" href="?page=teams">Teams & Players</a>
+    <a data-page="rules" href="?page=rules">PCBL Rules</a><a data-page="finalformat" href="?page=finalformat">Final Format</a>
   </nav>
 
   <section id="dashboard" class="page">
@@ -38,6 +38,7 @@
     <div id="liveGrid" class="livegrid"></div>
   </section>
 
+  <section id="player" class="page hidden"><div class="card player-profile-page"><div class="page-back"><a class="btn small" href="?page=playerstats">← Back to Player Stats</a></div><div id="publicPlayerProfilePage"></div></div></section>
   <section id="fixtures" class="page hidden">
     <div class="card"><div class="cardhead"><h2>Fixtures & Results</h2><span class="muted">All tournament matches</span></div>
       <div class="tablewrap"><table><thead><tr><th>Time</th><th>Court</th><th>Type</th><th>Team A</th><th>Team B</th><th>Players</th><th>Status</th><th>Score</th></tr></thead><tbody id="fixturesBody"></tbody></table></div>
@@ -111,5 +112,5 @@
 </section>
 </main>
 <div id="teamDetailModal" class="modal hidden"><div class="modalbox team-detail-modal"><div class="cardhead"><h2 id="teamDetailTitle">Team Details</h2><button class="btn" id="closeTeamDetail">Close</button></div><div id="teamDetailBody"></div></div></div>
-<script src="config.js"></script><script src="finals.js?v=15"></script><script src="public.js?v=20260907-player-stats-v12"></script>
+<script src="config.js"></script><script src="finals.js?v=15"></script><script src="public.js?v=20260907-player-stats-v14"></script>
 </body></html>

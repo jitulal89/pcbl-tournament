@@ -1,6 +1,9 @@
-PCBL 2026 Player Stats V10
+PCBL 2026 — V14 Mobile & Player Profile Update
 
-Adds Player Stats tab to Admin and Public.
-Stats are calculated from completed match lineups and winners; no database migration is required.
-Filters: team, match type, league/finals stage. Click a player row for match history.
-Existing finals, quadruple, triplet, pairing, dashboard and fixtures functionality is retained.
+Changes:
+- Player names/cards open a dedicated Player Profile page using ?page=player&player=<id>.
+- Player Profile shows every match appearance (upcoming/live/completed) with type, stage, date/time, court, both lineups, status and score.
+- Dummy/dummy players are excluded from Player Stats and cannot be opened.
+- All main tabs now use persistent page URLs (?page=dashboard, live, playerstats, fixtures, teams, rules, finalformat). Refresh keeps the selected page.
+- Mobile-first navigation, spacing, buttons, cards, live scoring, tables and rules styling.
+- No database changes required.

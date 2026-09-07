@@ -24,13 +24,10 @@
   function team(id){ return state.teams.find(t=>t.id===id); }
   function player(id){ for(const t of state.teams){ const p=t.players.find(x=>x.id===id); if(p) return p; } return null; }
 
-  function show(page){
-    document.querySelectorAll('.page').forEach(x=>x.classList.add('hidden'));
-    const el=$(page); if(el) el.classList.remove('hidden');
-    document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('active',x.dataset.page===page));
-    render();
-  }
-
+  function requestedPage(){const p=new URLSearchParams(location.search).get('page');return ['dashboard','live','playerstats','fixtures','teams','rules','finalformat','player'].includes(p)?p:'dashboard';}
+  function requestedPlayer(){return new URLSearchParams(location.search).get('player')||'';}
+  function show(page, updateUrl=true){if(!['dashboard','live','playerstats','fixtures','teams','rules','finalformat','player'].includes(page)) page='dashboard';document.querySelectorAll('.page').forEach(x=>x.classList.add('hidden'));const el=$(page);if(el)el.classList.remove('hidden');document.querySelectorAll('nav a').forEach(x=>x.classList.toggle('active',x.dataset.page===page));if(updateUrl){const u=new URL(location.href);u.searchParams.set('page',page);if(page!=='player')u.searchParams.delete('player');history.pushState({},'',u);}}
+  function showRequestedPage(){const page=requestedPage();show(page,false);const pid=requestedPlayer();if(page==='player'&&pid)openAdminPlayerStats(pid,false);}
   function matchType(m){ return m?.match_type || m?.type || ''; }
   function isTriplet(m){ return matchType(m) === "Men's Triplet"; }
   function isQuadruple(m){ return matchType(m) === "Men's Quadruple"; }
@@ -217,13 +214,13 @@
     const mobile=$('adminPlayerStatsMobile');
     mobile.innerHTML=rows.map((x,i)=>`<button type="button" class="player-rank-card" data-admin-player-stats="${esc(x.p.id)}"><span class="rank-pill">${i+1}</span><span class="player-rank-main"><b>${esc(x.p.name)}</b><small>${esc(x.t.name)}</small><span class="mobile-breakdown">${x.wins}W · ${x.losses}L · ${x.played} played</span><span class="winbar"><i style="width:${Math.min(100,x.winPct)}%"></i></span></span><span class="mobile-win"><b>${x.winPct}%</b><small>Win rate</small></span></button>`).join('')||'<div class="empty-stats">No completed player appearances found.</div>';
   }
-  function openAdminPlayerStats(id){
-    const t=state.teams.find(t=>(t.players||[]).some(p=>p.id===id)); const p=t?.players.find(p=>p.id===id); if(!p || /dummy/i.test(String(p.name||''))) return;
+  function openAdminPlayerStats(id, updateUrl=true){
+    const t=state.teams.find(t=>(t.players||[]).some(p=>p.id===id)); const p=t?.players.find(p=>p.id===id); if(!p || /dummy/i.test(String(p.name||'')))return;
     const x=playerStatsData({team:t.id,type:'all',stage:'all'}).find(r=>r.p.id===id); if(!x)return;
-    const detail=$('adminPlayerStatsDetail'); detail.classList.remove('hidden');
-    detail.innerHTML=`<div class="player-profile"><span class="profile-avatar">${esc(String(p.name||'?').trim().charAt(0).toUpperCase())}</span><div><h3>${esc(p.name)}</h3><p>${esc(t.name)} · ${x.played} played · <span class="result-win">${x.wins} wins</span> · <span class="result-loss">${x.losses} losses</span> · <b>${x.winPct}% win rate</b></p></div><button type="button" class="btn small" id="closeAdminPlayerStats">Close</button></div><div class="profile-kpis"><div><span>Played</span><b>${x.played}</b></div><div><span>Wins</span><b class="result-win">${x.wins}</b></div><div><span>Losses</span><b class="result-loss">${x.losses}</b></div><div><span>Win Rate</span><b>${x.winPct}%</b></div></div><div class="history-title"><h3>Match History</h3><span>Every completed match played by ${esc(p.name)}</span></div><div class="player-history">${playerHistoryHtml(x)}</div>`;
-    detail.scrollIntoView({behavior:'smooth',block:'start'});
-    $('closeAdminPlayerStats').onclick=()=>detail.classList.add('hidden');
+    if(updateUrl){const u=new URL(location.href);u.searchParams.set('page','player');u.searchParams.set('player',id);history.pushState({},'',u);show('player',false);}
+    const detail=$('adminPlayerProfilePage'); if(!detail)return;
+    const all=x.allAppearances.slice().sort((a,b)=>(a.match_no||0)-(b.match_no||0));
+    detail.innerHTML=`<div class="player-profile"><span class="profile-avatar">${esc(String(p.name||'?').trim().charAt(0).toUpperCase())}</span><div><span class="eyebrow">PLAYER PROFILE</span><h2>${esc(p.name)}</h2><p>${esc(t.name)} · ${x.played} completed · <span class="result-win">${x.wins} wins</span> · <span class="result-loss">${x.losses} losses</span> · <b>${x.winPct}% win rate</b></p></div></div><div class="profile-kpis"><div><span>Completed</span><b>${x.played}</b></div><div><span>Wins</span><b class="result-win">${x.wins}</b></div><div><span>Losses</span><b class="result-loss">${x.losses}</b></div><div><span>Win Rate</span><b>${x.winPct}%</b></div></div><div class="history-title"><h3>All Matches Played</h3><span>${all.length} appearance${all.length===1?'':'s'}</span></div><div class="player-history">${all.map(m=>{const ownSide=(m.ap||[]).includes(p.id)?'A':'B',oppSide=ownSide==='A'?'B':'A';const ownNames=(m[ownSide==='A'?'ap':'bp']||[]).map(id=>player(id)?.name).filter(Boolean);const oppNames=(m[oppSide==='A'?'ap':'bp']||[]).map(id=>player(id)?.name).filter(Boolean);const w=matchWinner(m),isWin=w===t.id,isLoss=w&&w!==t.id;const type=matchType(m),label=isFinal(m)?finalNoLabel(m):type;const status=m.status==='done'?(isWin?'WON':isLoss?'LOST':'DRAW'):String(m.status||'UPCOMING').toUpperCase();return `<div class="player-history-card ${isWin?'history-win':isLoss?'history-loss':''} match-history-static"><span class="history-icon">${playerStatsTypeIcon(type)}</span><span class="history-main"><b>${esc(label)}</b><span>${esc(team(m.team_a)?.name||'—')} vs ${esc(team(m.team_b)?.name||'—')}</span><small>${esc(formatTime(m.scheduled_at))} · Court ${esc(m.court||'—')}</small><small><b>Your lineup:</b> ${esc(ownNames.join(' · ')||'—')}</small><small><b>Opponent lineup:</b> ${esc(oppNames.join(' · ')||'—')}</small></span><span class="history-result ${isWin?'win':isLoss?'loss':''}">${esc(status)}<strong>${esc(fixtureScore(m))}</strong></span></div>`;}).join('')||'<div class="empty-stats">No matches found for this player.</div>'}</div>`;
   }
   function render(){
     if(!$('stats')) return;
@@ -634,6 +631,7 @@
       return {...m,a:m.team_a,b:m.team_b,ap:side('A'),bp:side('B'),game:0,sets:[1,2,3].map(n=>{const g=gs.find(x=>x.game_no===n);return g?[g.score_a,g.score_b]:[0,0]}),history:[]};
     });
     render();
+    showRequestedPage();
   }
 
   let viewerPresenceChannel=null;
@@ -679,7 +677,7 @@
   });
   $('logoutBtn').addEventListener('click',async()=>{if(sb) await sb.auth.signOut();location.reload();});
   $('addMatchBtn').addEventListener('click',openMatchModal); $('addMatchBtn2').addEventListener('click',openMatchModal);
-  document.querySelectorAll('nav button,[data-page="live"]').forEach(b=>b.addEventListener('click',()=>show(b.dataset.page)));
+  document.querySelectorAll('nav a,[data-page="live"]').forEach(b=>b.addEventListener('click',e=>{e.preventDefault();const u=b.href?new URL(b.href):new URL(location.href);u.searchParams.set('page',b.dataset.page);history.pushState({},'',u);showRequestedPage();})); window.addEventListener('popstate',showRequestedPage);
   ['adminStatsTeam','adminStatsType','adminStatsStage'].forEach(id=>$(id)?.addEventListener('change',renderPlayerStats));
   $('teamForm').addEventListener('submit',async e=>{e.preventDefault();const name=$('teamName').value.trim(),cap=$('captain').value.trim();if(state.mode==='cloud')await addCloudTeam(name,cap);else{state.teams.push({id:'t'+Date.now(),name,captain:cap,players:[]});e.target.reset();render();}});
   $('playerForm').addEventListener('submit',async e=>{e.preventDefault();const tid=$('playerTeam').value,name=$('playerName').value.trim(),gender=$('gender').value;if(!tid){alert('Add a team first.');return;}if(state.mode==='cloud')await addCloudPlayer(tid,name,gender);else{team(tid).players.push({id:'p'+Date.now(),name,gender});e.target.reset();render();}});
