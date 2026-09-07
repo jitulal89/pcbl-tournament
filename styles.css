@@ -246,3 +246,24 @@ nav a{border:0;background:none;padding:13px 16px;font-weight:800;color:#6b7280;c
 .suggestions-actions{display:flex;justify-content:flex-end;margin:0 0 12px}.suggestions-error{padding:14px;border:1px solid #fecaca;border-radius:12px;background:#fff7f7;color:#991b1b}@media(max-width:600px){.suggestions-actions{justify-content:stretch}.suggestions-actions .btn{width:100%;min-height:44px}}
 
 .public-standalone-nav{margin:0 0 18px}
+
+/* V28 robust Admin More button */
+@media(max-width:700px){
+.admin-mobile-nav .mobile-more{position:relative!important;min-width:0!important}
+.admin-mobile-nav .mobile-more-btn{width:100%!important;height:54px!important;border:0!important;background:transparent!important;color:#667085!important;border-radius:12px!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:2px!important;font:inherit!important;font-size:19px!important;cursor:pointer!important}
+.admin-mobile-nav .mobile-more-btn span{font-size:10px!important;font-weight:800!important}
+.admin-mobile-nav .mobile-more-btn.active{background:#111827!important;color:#fff!important}
+.admin-mobile-nav .mobile-more-menu{position:absolute!important;right:0!important;bottom:64px!important;width:210px!important;background:#fff!important;border:1px solid #dfe5ee!important;border-radius:14px!important;padding:7px!important;box-shadow:0 12px 30px rgba(16,24,40,.18)!important;z-index:10020!important}
+.admin-mobile-nav .mobile-more-menu[hidden]{display:none!important}
+}
+
+/* V28 Admin mobile navigation reliability */
+@media(max-width:700px){
+ .admin-mobile-nav{overflow:visible!important}
+ .admin-mobile-nav>#adminMoreBtn{border:0;background:transparent;min-height:54px;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:19px;color:#667085;font-family:inherit;cursor:pointer}
+ .admin-mobile-nav>#adminMoreBtn span{font-size:10px;font-weight:800}
+ .admin-mobile-nav>#adminMoreBtn.active{background:#111827;color:#fff}
+ .admin-mobile-nav>.admin-more-popup{position:absolute!important;right:4px!important;bottom:66px!important;width:min(250px,calc(100vw - 28px))!important;background:#fff!important;border:1px solid #dfe5ee!important;border-radius:14px!important;padding:7px!important;box-shadow:0 12px 32px rgba(16,24,40,.22)!important;z-index:10050!important}
+ .admin-mobile-nav>.admin-more-popup[hidden]{display:none!important}
+ .admin-mobile-nav>.admin-more-popup a{display:block!important;padding:13px!important;border-radius:10px!important;color:#344054!important;text-decoration:none!important;font-weight:800!important;font-size:14px!important}
+}
