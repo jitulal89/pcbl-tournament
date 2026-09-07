@@ -172,6 +172,32 @@
     return isMatchComplete(m,s[0],s[1]) ? (s[0]>s[1]?[1,0]:s[1]>s[0]?[0,1]:[0,0]) : [0,0];
   }
 
+  function playerStatsData(filters={team:'all',type:'all',stage:'all'}){
+    const done=state.matches.filter(m=>m.status==='done' && (filters.type==='all'||matchType(m)===filters.type) && (filters.stage==='all'||(isFinal(m)?'finals':'league')===filters.stage));
+    const rows=state.teams.flatMap(t=>(t.players||[]).map(p=>{
+      const appearances=done.filter(m=>matchPlayersForState(m.id).includes(p.id));
+      const wins=appearances.filter(m=>matchWinner(m)===t.id).length;
+      const losses=appearances.filter(m=>matchWinner(m)&&matchWinner(m)!==t.id).length;
+      const countType=name=>appearances.filter(m=>matchType(m)===name).length;
+      return {p,t,played:appearances.length,wins,losses,winPct:appearances.length?Math.round(wins*1000/appearances.length)/10:0,singles:countType("Men's Singles")+countType("Women's Singles"),doubles:countType("Men's Doubles")+countType("Women's Doubles")+countType("Mixed Doubles"),triplet:countType("Men's Triplet"),quad:countType("Men's Quadruple"),appearances};
+    })).filter(x=>filters.team==='all'||x.t.id===filters.team).sort((a,b)=>b.winPct-a.winPct||b.wins-a.wins||b.played-a.played||a.p.name.localeCompare(b.p.name));
+    return rows;
+  }
+  function matchPlayersForState(matchId){ const m=state.matches.find(x=>x.id===matchId); return m ? [...(m.ap||[]), ...(m.bp||[])] : []; }
+  function renderPlayerStats(){
+    const body=$('adminPlayerStatsBody'); if(!body) return;
+    const filters={team:$('adminStatsTeam')?.value||'all',type:$('adminStatsType')?.value||'all',stage:$('adminStatsStage')?.value||'all'};
+    const rows=playerStatsData(filters); const total=rows.length, played=rows.reduce((n,x)=>n+x.played,0), wins=rows.reduce((n,x)=>n+x.wins,0);
+    $('adminStatsTeam').innerHTML='<option value="all">All Teams</option>'+state.teams.map(t=>`<option value="${esc(t.id)}">${esc(t.name)}</option>`).join(''); $('adminStatsTeam').value=filters.team;
+    $('adminPlayerStatsSummary').innerHTML=`<div><span>Players</span><b>${total}</b></div><div><span>Completed appearances</span><b>${played}</b></div><div><span>Player wins</span><b>${wins}</b></div><div><span>Avg. win rate</span><b>${total?Math.round(rows.reduce((n,x)=>n+x.winPct,0)/total):0}%</b></div>`;
+    body.innerHTML=rows.map((x,i)=>`<tr class="player-stat-row" data-admin-player-stats="${esc(x.p.id)}"><td><b>${i+1}</b></td><td><b>${esc(x.p.name)}</b></td><td>${esc(x.t.name)}</td><td>${x.played}</td><td class="result-win">${x.wins}</td><td class="result-loss">${x.losses}</td><td><b>${x.winPct}%</b></td><td>${x.singles}</td><td>${x.doubles}</td><td>${x.triplet}</td><td>${x.quad}</td></tr>`).join('')||'<tr><td colspan="11" class="muted">No completed player appearances found.</td></tr>';
+  }
+  function openAdminPlayerStats(id){
+    const t=state.teams.find(t=>(t.players||[]).some(p=>p.id===id)); const p=t?.players.find(p=>p.id===id); if(!p)return;
+    const rows=playerStatsData({team:t.id,type:'all',stage:'all'}); const x=rows.find(r=>r.p.id===id); if(!x)return;
+    $('adminPlayerStatsDetail').classList.remove('hidden'); $('adminPlayerStatsDetail').innerHTML=`<div class="player-detail-head"><div><h3>${esc(p.name)}</h3><p class="muted">${esc(t.name)} · ${x.played} played · ${x.wins} wins · ${x.losses} losses · ${x.winPct}% win rate</p></div><button class="btn small" id="closeAdminPlayerStats">Close</button></div><div class="player-history">${x.appearances.slice().sort((a,b)=>(a.match_no||0)-(b.match_no||0)).map(m=>{const w=matchWinner(m),isWin=w===t.id,isLoss=w&&w!==t.id;return `<div class="player-history-row"><span><b>${esc(isFinal(m)?finalNoLabel(m):matchType(m))}</b><small>${esc(isFinal(m)?'Finals':'League')} · ${esc(m.status)}</small></span><span>${esc(team(m.team_a)?.name||'—')} vs ${esc(team(m.team_b)?.name||'—')}</span><span class="${isWin?'result-win':isLoss?'result-loss':''}">${isWin?'WON':isLoss?'LOST':'—'}</span><span>${esc(fixtureScore(m))}</span></div>`}).join('')}</div>`;
+    $('closeAdminPlayerStats').onclick=()=> $('adminPlayerStatsDetail').classList.add('hidden');
+  }
   function render(){
     if(!$('stats')) return;
     $('tournamentTitle').textContent = state.tournament?.name || 'PCBL Finals';
@@ -202,6 +228,7 @@
     })).sort((x,y)=>y.wins-x.wins || x.team.name.localeCompare(y.team.name));
     $('standings').innerHTML = standing.map((x,i)=>`<button type="button" class="player standing-team" data-admin-team-details="${esc(x.team.id)}"><span><b>${i+1}. ${esc(x.team.name)}</b><small>${x.played} played · ${x.team.players.length} players</small></span><b>${x.wins} win${x.wins===1?'':'s'}</b></button>`).join('') || '<p class="muted">No teams.</p>';
     $('schedule').innerHTML = state.matches.slice().sort((a,b)=>(a.time||'').localeCompare(b.time||'')).map(m=>{const w=m.status==='done'?matchWinner(m):null;const aCls=w===m.a?'result-win':w===m.b?'result-loss':'';const bCls=w===m.b?'result-win':w===m.a?'result-loss':'';return `<div class="player"><span><b>${esc(m.time||'—')}</b> · Court ${esc(m.court||'—')}<br>${esc(matchType(m))} · <b class="${aCls}">${esc(team(m.a)?.name||'—')}</b> vs <b class="${bCls}">${esc(team(m.b)?.name||'—')}</b></span><span class="status ${m.status}">${esc(m.status)}</span></div>`;}).join('') || '<p class="muted">No matches.</p>';
+    renderPlayerStats();
   }
 
   function courtHtml(m){
@@ -400,7 +427,9 @@
     }
   }
 
-  async function validatePairUniqueness(ids, teamId, type){
+  async function validatePairUniqueness(ids, teamId, type, stage='league'){
+    // Finals are fully exempt from the no-repeat-pair rule.
+    if(stage === 'finals') return null;
     let pairs=[];
 
     if(type === "Men's Doubles" || type === "Mixed Doubles") {
@@ -532,12 +561,13 @@
     else if(type === "Men's Quadruple") { ap=[...document.querySelectorAll('#lineA select[data-quad^="A-"]')].map(x=>x.value).filter(Boolean); bp=[...document.querySelectorAll('#lineB select[data-quad^="B-"]')].map(x=>x.value).filter(Boolean); }
     else { ap=[...document.querySelectorAll('#lineA input:checked')].map(x=>x.value); bp=[...document.querySelectorAll('#lineB input:checked')].map(x=>x.value); }
     const errA=validateLineup(effectiveType,ap,a), errB=validateLineup(effectiveType,bp,b); if(errA||errB){alert(errA||errB);return;}
-    // Finals: repeated players and repeated pairings are allowed.
-    // League-stage pair uniqueness rules remain unchanged.
+    if(stage==='finals'){
+      const uA=await validateFinalPlayerUniqueness(finalNo,a,ap), uB=await validateFinalPlayerUniqueness(finalNo,b,bp); if(uA||uB){alert(uA||uB);return;}
+    }
     // Pair-repeat restriction applies to League matches only.
     // Finals intentionally have NO pairing-repeat restriction.
     if(stage!=='finals'){
-      const pairErrA=await validatePairUniqueness(ap,a,effectiveType), pairErrB=await validatePairUniqueness(bp,b,effectiveType);
+      const pairErrA=await validatePairUniqueness(ap,a,effectiveType,stage), pairErrB=await validatePairUniqueness(bp,b,effectiveType,stage);
       if(pairErrA||pairErrB){alert(pairErrA||pairErrB);return;}
     }
     const points=stage==='finals'?finalPoints(finalNo):(effectiveType==="Men's Quadruple"?60:effectiveType==="Men's Triplet"?30:21);
@@ -623,11 +653,13 @@
   $('logoutBtn').addEventListener('click',async()=>{if(sb) await sb.auth.signOut();location.reload();});
   $('addMatchBtn').addEventListener('click',openMatchModal); $('addMatchBtn2').addEventListener('click',openMatchModal);
   document.querySelectorAll('nav button,[data-page="live"]').forEach(b=>b.addEventListener('click',()=>show(b.dataset.page)));
+  ['adminStatsTeam','adminStatsType','adminStatsStage'].forEach(id=>$(id)?.addEventListener('change',renderPlayerStats));
   $('teamForm').addEventListener('submit',async e=>{e.preventDefault();const name=$('teamName').value.trim(),cap=$('captain').value.trim();if(state.mode==='cloud')await addCloudTeam(name,cap);else{state.teams.push({id:'t'+Date.now(),name,captain:cap,players:[]});e.target.reset();render();}});
   $('playerForm').addEventListener('submit',async e=>{e.preventDefault();const tid=$('playerTeam').value,name=$('playerName').value.trim(),gender=$('gender').value;if(!tid){alert('Add a team first.');return;}if(state.mode==='cloud')await addCloudPlayer(tid,name,gender);else{team(tid).players.push({id:'p'+Date.now(),name,gender});e.target.reset();render();}});
   document.addEventListener('click',e=>{
     const teamDetail=e.target.closest('[data-admin-team-details]'); if(teamDetail) openAdminTeamDetails(teamDetail.dataset.adminTeamDetails);
     if(e.target.id==='modal') closeModal();
+    const ps=e.target.closest('[data-admin-player-stats]'); if(ps) openAdminPlayerStats(ps.dataset.adminPlayerStats);
     const score=e.target.closest('[data-score]'); if(score) startMatch(score.dataset.score);
     const pt=e.target.closest('[data-point]'); if(pt){const [id,side]=pt.dataset.point.split(':');point(id,side);}
     const un=e.target.closest('[data-undo]'); if(un) undo(un.dataset.undo);

@@ -1,10 +1,6 @@
-# PCBL 2026 Update
+PCBL 2026 Player Stats V10
 
-Includes:
-- Triplet deuce scoring: after 30, 2-point lead required; 40 wins.
-- Correct Triplet completion logic in Admin and Public.
-- Done-match final scores shown in Admin fixtures.
-- Winner/loser color coding for done fixtures and team-detail views.
-- Existing League, Triplet, Quadruple, Finals and viewer-count functionality retained.
-
-Run `triplet_deuce_update.sql` once in Supabase SQL Editor to update the scoring RPC safely.
+Adds Player Stats tab to Admin and Public.
+Stats are calculated from completed match lineups and winners; no database migration is required.
+Filters: team, match type, league/finals stage. Click a player row for match history.
+Existing finals, quadruple, triplet, pairing, dashboard and fixtures functionality is retained.
