@@ -1,9 +1,10 @@
-PCBL 2026 — V14 Mobile & Player Profile Update
+PCBL 2026 V16
 
 Changes:
-- Player names/cards open a dedicated Player Profile page using ?page=player&player=<id>.
-- Player Profile shows every match appearance (upcoming/live/completed) with type, stage, date/time, court, both lineups, status and score.
-- Dummy/dummy players are excluded from Player Stats and cannot be opened.
-- All main tabs now use persistent page URLs (?page=dashboard, live, playerstats, fixtures, teams, rules, finalformat). Refresh keeps the selected page.
-- Mobile-first navigation, spacing, buttons, cards, live scoring, tables and rules styling.
-- No database changes required.
+- Dedicated player.html profile page with direct Supabase loading.
+- Player Stats clicks navigate directly to player.html?player=<id>.
+- Player profile shows every saved match appearance, status, score, date, court, both lineups and result.
+- Dummy/dummy players are excluded.
+- Mobile navigation redesigned as compact horizontally scrollable buttons instead of wrapped links.
+- Mobile player profile uses stacked match cards and responsive KPIs.
+- No database/SQL changes required.
