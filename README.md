@@ -1,14 +1,6 @@
-PCBL 2026 – Mobile Navigation V17
-
-Changes:
-- Replaced the horizontally scrollable mobile site navigation with a fixed bottom navigation bar on phones.
-- Primary mobile navigation: Home, Live, Stats, Fixtures, More.
-- More menu contains Teams, Rules and Final Format.
-- Desktop navigation remains unchanged.
-- Added active-state handling for mobile navigation on direct pages and query-based Admin pages.
-- No database changes required.
-
-Upload all files to the GitHub Pages site, preserving filenames.
-
-
-V19 adds anonymous player suggestions. Run player_suggestions.sql once in Supabase SQL Editor. No existing tables/data are dropped or modified.
+PCBL V21
+- Replaced unreliable mobile More popup with a dedicated more.html page.
+- Bottom navigation is five simple links: Home, Live, Stats, Fixtures, More.
+- More page links to Teams, Rules, Final Format, Suggestions.
+- Mobile-first styling and cache-busting styles.css?v=21.
+- No database changes.
