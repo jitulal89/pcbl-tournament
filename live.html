@@ -1,1 +1,16 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PCBL Live Scores</title><link rel="stylesheet" href="styles.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script></head><body><header><div class="brand"><div class="logo">PCBL</div><div><strong>PCBL Live Scores</strong><small>Public spectator screen</small></div></div><div class="head-actions"><a class="btn ghost" href="index.html">Public Site</a><a class="btn ghost" href="admin.html">🔐 Admin</a></div></header><main><div class="hero"><div><span class="eyebrow">LIVE</span><h1 id="title">PCBL Finals</h1><p>Live badminton team-event scores</p></div><div id="viewerCount" class="viewer-count">👁 0 watching live</div></div><div id="livePage" class="livegrid"></div></main><script src="config.js?v=12"></script><script src="live.js?v=15"></script></body></html>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PCBL Live Scores</title><link rel="stylesheet" href="styles.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script></head><body><header><div class="brand"><div class="logo">PCBL</div><div><strong>PCBL Live Scores</strong><small>Public spectator screen</small></div></div><div class="head-actions"><a class="btn ghost" href="index.html">Public Site</a><a class="btn ghost" href="admin.html">🔐 Admin</a></div></header><main><div class="hero"><div><span class="eyebrow">LIVE</span><h1 id="title">PCBL Finals</h1><p>Live badminton team-event scores</p></div><div id="viewerCount" class="viewer-count">👁 0 watching live</div></div><div id="livePage" class="livegrid"></div></main><script src="config.js?v=12"></script><script src="live.js?v=15"></script>
+<nav class="mobile-bottom-nav" aria-label="Mobile navigation"><a data-page="dashboard" href="index.html">🏠<span>Home</span></a><a data-page="live" href="live.html">🔴<span>Live</span></a><a data-page="playerstats" href="player-stats.html">🏅<span>Stats</span></a><a data-page="fixtures" href="fixtures.html">📅<span>Fixtures</span></a><details class="mobile-more"><summary>☰<span>More</span></summary><div class="mobile-more-menu"><a data-page="teams" href="teams.html">👥 Teams</a><a data-page="rules" href="rules_public.html">📖 Rules</a><a data-page="finalformat" href="final_format.html">🏆 Final Format</a></div></details></nav>
+<script>
+(function(){
+  function activePage(){
+    const q=new URLSearchParams(location.search).get('page');
+    if(q) return q;
+    const f=location.pathname.split('/').pop().toLowerCase();
+    return ({'index.html':'dashboard','live.html':'live','player-stats.html':'playerstats','fixtures.html':'fixtures','teams.html':'teams','rules_public.html':'rules','final_format.html':'finalformat','player.html':'player'})[f]||'dashboard';
+  }
+  function mark(){const p=activePage();document.querySelectorAll('.mobile-bottom-nav [data-page]').forEach(a=>a.classList.toggle('active',a.dataset.page===p));}
+  document.addEventListener('click',function(e){if(e.target.closest('.mobile-bottom-nav a')) setTimeout(mark,0);},true);
+  window.addEventListener('popstate',mark); mark();
+})();
+</script>
+</body></html>

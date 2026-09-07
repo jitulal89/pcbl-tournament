@@ -1,10 +1,11 @@
-PCBL 2026 V16
+PCBL 2026 – Mobile Navigation V17
 
 Changes:
-- Dedicated player.html profile page with direct Supabase loading.
-- Player Stats clicks navigate directly to player.html?player=<id>.
-- Player profile shows every saved match appearance, status, score, date, court, both lineups and result.
-- Dummy/dummy players are excluded.
-- Mobile navigation redesigned as compact horizontally scrollable buttons instead of wrapped links.
-- Mobile player profile uses stacked match cards and responsive KPIs.
-- No database/SQL changes required.
+- Replaced the horizontally scrollable mobile site navigation with a fixed bottom navigation bar on phones.
+- Primary mobile navigation: Home, Live, Stats, Fixtures, More.
+- More menu contains Teams, Rules and Final Format.
+- Desktop navigation remains unchanged.
+- Added active-state handling for mobile navigation on direct pages and query-based Admin pages.
+- No database changes required.
+
+Upload all files to the GitHub Pages site, preserving filenames.

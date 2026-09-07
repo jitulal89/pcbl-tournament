@@ -7,4 +7,19 @@
 <section class="rules-section blue"><h3>👥 PLAYER UNIQUENESS — FINALS MATCHES 2, 3 & 4</h3><p>Across Finals Matches 2, 3 and 4, all <b>9 men must be unique</b>. Example: Match 2 = A2, A3, A8, A9; Match 3 = A1; Match 4 = A4, A5, A6, A7.</p><p class="success">✓ This uses A1–A9 exactly once across Matches 2, 3 and 4.</p></section>
 <section class="rules-section navy"><h3>🏆 OVERALL SCORING</h3><p>Points scored by each team in every Finals match are added to the cumulative Finals score. After all 6 matches, the team with the highest score out of <b>225</b> is the PCBL Finals Champion.</p><div id="finalProgress" class="final-progress">Loading Finals…</div><div id="champion"></div><div id="finalTotals" class="final-totals"></div></section>
 <section class="card"><div class="cardhead"><h2>Finals Fixtures & Scores</h2></div><div class="tablewrap"><table><thead><tr><th>#</th><th>Format</th><th>Pts</th><th>Team A</th><th>Players</th><th>Team B</th><th>Players</th><th>Score</th><th>Status</th></tr></thead><tbody id="finalRows"></tbody></table></div></section>
-</main><script src="config.js"></script><script src="finals.js"></script></body></html>
+</main><script src="config.js"></script><script src="finals.js"></script>
+<nav class="mobile-bottom-nav" aria-label="Mobile navigation"><a data-page="dashboard" href="index.html">🏠<span>Home</span></a><a data-page="live" href="live.html">🔴<span>Live</span></a><a data-page="playerstats" href="player-stats.html">🏅<span>Stats</span></a><a data-page="fixtures" href="fixtures.html">📅<span>Fixtures</span></a><details class="mobile-more"><summary>☰<span>More</span></summary><div class="mobile-more-menu"><a data-page="teams" href="teams.html">👥 Teams</a><a data-page="rules" href="rules_public.html">📖 Rules</a><a data-page="finalformat" href="final_format.html">🏆 Final Format</a></div></details></nav>
+<script>
+(function(){
+  function activePage(){
+    const q=new URLSearchParams(location.search).get('page');
+    if(q) return q;
+    const f=location.pathname.split('/').pop().toLowerCase();
+    return ({'index.html':'dashboard','live.html':'live','player-stats.html':'playerstats','fixtures.html':'fixtures','teams.html':'teams','rules_public.html':'rules','final_format.html':'finalformat','player.html':'player'})[f]||'dashboard';
+  }
+  function mark(){const p=activePage();document.querySelectorAll('.mobile-bottom-nav [data-page]').forEach(a=>a.classList.toggle('active',a.dataset.page===p));}
+  document.addEventListener('click',function(e){if(e.target.closest('.mobile-bottom-nav a')) setTimeout(mark,0);},true);
+  window.addEventListener('popstate',mark); mark();
+})();
+</script>
+</body></html>

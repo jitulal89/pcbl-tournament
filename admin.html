@@ -91,4 +91,19 @@
 </section></main>
 <div id="modal" class="modal hidden"><div id="modalBox" class="modalbox"></div></div>
 <script src="config.js?v=13"></script><script src="finals.js?v=15"></script><script src="app.js?v=20260907-v14"></script>
+
+<nav class="mobile-bottom-nav" aria-label="Mobile navigation"><a data-page="dashboard" href="?page=dashboard">🏠<span>Home</span></a><a data-page="live" href="?page=live">🔴<span>Live</span></a><a data-page="playerstats" href="?page=playerstats">🏅<span>Stats</span></a><a data-page="fixtures" href="?page=fixtures">📅<span>Fixtures</span></a><details class="mobile-more"><summary>☰<span>More</span></summary><div class="mobile-more-menu"><a data-page="teams" href="?page=teams">👥 Teams</a><a data-page="rules" href="?page=rules">📖 Rules</a><a data-page="finalformat" href="?page=finalformat">🏆 Final Format</a></div></details></nav>
+<script>
+(function(){
+  function activePage(){
+    const q=new URLSearchParams(location.search).get('page');
+    if(q) return q;
+    const f=location.pathname.split('/').pop().toLowerCase();
+    return ({'index.html':'dashboard','live.html':'live','player-stats.html':'playerstats','fixtures.html':'fixtures','teams.html':'teams','rules_public.html':'rules','final_format.html':'finalformat','player.html':'player'})[f]||'dashboard';
+  }
+  function mark(){const p=activePage();document.querySelectorAll('.mobile-bottom-nav [data-page]').forEach(a=>a.classList.toggle('active',a.dataset.page===p));}
+  document.addEventListener('click',function(e){if(e.target.closest('.mobile-bottom-nav a')) setTimeout(mark,0);},true);
+  window.addEventListener('popstate',mark); mark();
+})();
+</script>
 </body></html>
