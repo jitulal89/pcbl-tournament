@@ -4,3 +4,5 @@ PCBL V21
 - More page links to Teams, Rules, Final Format, Suggestions.
 - Mobile-first styling and cache-busting styles.css?v=21.
 - No database changes.
+
+V22: More navigation is a dedicated page on every public page. Removed stale More popup code from suggestions.html.
