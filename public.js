@@ -78,22 +78,39 @@
     })).filter(x=>filters.team==='all'||x.t.id===filters.team).sort((a,b)=>b.winPct-a.winPct||b.wins-a.wins||b.played-a.played||a.p.name.localeCompare(b.p.name));
     return rows;
   }
+  function playerStatsTypeIcon(type){
+    if(/Singles/i.test(type)) return '🏸';
+    if(/Doubles/i.test(type)) return '👥';
+    if(/Triplet/i.test(type)) return '3️⃣';
+    if(/Quadruple/i.test(type)) return '4️⃣';
+    return '🏸';
+  }
+  function playerHistoryHtml(x){
+    return x.appearances.slice().sort((a,b)=>(a.match_no||0)-(b.match_no||0)).map(m=>{
+      const own=matchPlayers.filter(r=>r.match_id===m.id&&r.player_id===x.p.id)[0];
+      const ownSide=own?.side||'A', oppSide=ownSide==='A'?'B':'A';
+      const ownNames=orderedLineup(m,ownSide).map(id=>player(id)?.name).filter(Boolean);
+      const oppNames=orderedLineup(m,oppSide).map(id=>player(id)?.name).filter(Boolean);
+      const w=winner(m), isWin=w===x.t.id, isLoss=w&&w!==x.t.id;
+      const type=matchType(m), label=isFinal(m)?finalLabel(m.final_no):type;
+      return `<button type="button" class="player-history-card ${isWin?'history-win':isLoss?'history-loss':''}" data-public-history-match="${esc(m.id)}"><span class="history-icon">${playerStatsTypeIcon(type)}</span><span class="history-main"><b>${esc(label)}</b><span>${esc(team(m.team_a)?.name||'—')} vs ${esc(team(m.team_b)?.name||'—')}</span><small>${esc(formatTime(m.scheduled_at))} · Court ${esc(m.court||'—')} · Your lineup: ${esc(ownNames.join(' · ')||'—')} · Opponent: ${esc(oppNames.join(' · ')||'—')}</small></span><span class="history-result ${isWin?'win':isLoss?'loss':''}">${isWin?'WON':isLoss?'LOST':'—'}<strong>${esc(scoreText(m))}</strong></span></button>`;
+    }).join('') || '<div class="empty-stats">No completed matches played by this player.</div>';
+  }
   function renderPlayerStats(){
-    const body=$('publicPlayerStatsBody'); if(!body) return;
+    const body=$('publicPlayerStatsBody'); if(!body)return;
     const filters={team:$('publicStatsTeam')?.value||'all',type:$('publicStatsType')?.value||'all',stage:$('publicStatsStage')?.value||'all'};
     const rows=playerStatsData(filters);
-    const active=rows.filter(x=>x.played>0);
-    const played=rows.reduce((n,x)=>n+x.played,0), wins=rows.reduce((n,x)=>n+x.wins,0);
-    const best=active[0];
-    $('publicStatsTeam').innerHTML='<option value="all">All Teams</option>'+teams.map(t=>`<option value="${esc(t.id)}">${esc(t.name)}</option>`).join('');
-    $('publicStatsTeam').value=filters.team;
-    $('publicPlayerStatsSummary').innerHTML=`
-      <div class="stat-kpi"><span>👤 Players</span><b>${rows.length}</b><small>Dummy excluded</small></div>
-      <div class="stat-kpi"><span>🏸 Appearances</span><b>${played}</b><small>Completed matches</small></div>
-      <div class="stat-kpi"><span>🏆 Wins</span><b>${wins}</b><small>Total player wins</small></div>
-      <div class="stat-kpi highlight"><span>🔥 Best Win Rate</span><b>${best?best.winPct:0}%</b><small>${best?esc(best.p.name):'—'}</small></div>`;
-    $('publicPlayerStatsPodium').innerHTML=active.slice(0,3).map((x,i)=>`<button type="button" class="podium-card rank-${i+1}" data-public-player-stats="${esc(x.p.id)}"><div class="podium-rank">${['🥇','🥈','🥉'][i]}</div><div class="podium-name">${esc(x.p.name)}</div><div class="podium-team">${esc(x.t.name)}</div><div class="podium-win">${x.winPct}%</div><div class="podium-meta">${x.wins} wins · ${x.played} played</div></button>`).join('') || '<div class="empty-stats">No completed player appearances yet.</div>';
+    $('publicStatsTeam').innerHTML='<option value="all">All Teams</option>'+teams.map(t=>`<option value="${esc(t.id)}">${esc(t.name)}</option>`).join(''); $('publicStatsTeam').value=filters.team;
     body.innerHTML=rows.map((x,i)=>`<tr class="player-stat-row" data-public-player-stats="${esc(x.p.id)}"><td><span class="rank-pill">${i+1}</span></td><td><b>${esc(x.p.name)}</b><div class="winbar"><i style="width:${Math.min(100,x.winPct)}%"></i></div></td><td>${esc(x.t.name)}</td><td>${x.played}</td><td class="result-win">${x.wins}</td><td class="result-loss">${x.losses}</td><td><b>${x.winPct}%</b></td><td>${x.singles}</td><td>${x.doubles}</td><td>${x.triplet}</td><td>${x.quad}</td></tr>`).join('')||'<tr><td colspan="11" class="muted">No completed player appearances found.</td></tr>';
+    $('publicPlayerStatsMobile').innerHTML=rows.map((x,i)=>`<button type="button" class="player-rank-card" data-public-player-stats="${esc(x.p.id)}"><span class="rank-pill">${i+1}</span><span class="player-rank-main"><b>${esc(x.p.name)}</b><small>${esc(x.t.name)}</small><span class="mobile-breakdown">${x.wins}W · ${x.losses}L · ${x.played} played</span><span class="winbar"><i style="width:${Math.min(100,x.winPct)}%"></i></span></span><span class="mobile-win"><b>${x.winPct}%</b><small>Win rate</small></span></button>`).join('')||'<div class="empty-stats">No completed player appearances found.</div>';
+  }
+  function openPublicPlayerStats(id){
+    const t=teams.find(t=>(t.players||[]).some(p=>p.id===id)); const p=t?.players.find(p=>p.id===id); if(!p || /dummy/i.test(String(p.name||'')))return;
+    const x=playerStatsData({team:t.id,type:'all',stage:'all'}).find(r=>r.p.id===id); if(!x)return;
+    const detail=$('publicPlayerStatsDetail'); detail.classList.remove('hidden');
+    detail.innerHTML=`<div class="player-profile"><span class="profile-avatar">${esc(String(p.name||'?').trim().charAt(0).toUpperCase())}</span><div><h3>${esc(p.name)}</h3><p>${esc(t.name)} · ${x.played} played · <span class="result-win">${x.wins} wins</span> · <span class="result-loss">${x.losses} losses</span> · <b>${x.winPct}% win rate</b></p></div><button type="button" class="btn small" id="closePublicPlayerStats">Close</button></div><div class="profile-kpis"><div><span>Played</span><b>${x.played}</b></div><div><span>Wins</span><b class="result-win">${x.wins}</b></div><div><span>Losses</span><b class="result-loss">${x.losses}</b></div><div><span>Win Rate</span><b>${x.winPct}%</b></div></div><div class="history-title"><h3>Match History</h3><span>Every completed match played by ${esc(p.name)}</span></div><div class="player-history">${playerHistoryHtml(x)}</div>`;
+    detail.scrollIntoView({behavior:'smooth',block:'start'});
+    $('closePublicPlayerStats').onclick=()=>detail.classList.add('hidden');
   }
   function render(){
     $('tournamentTitle').textContent=tournament?.name||'PCBL 2026';
