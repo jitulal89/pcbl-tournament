@@ -663,7 +663,7 @@
       const {data:t,error:te}=await sb.from('tournaments').select('*').order('created_at',{ascending:true}).limit(1).maybeSingle();
       if(te){$('loginMsg').textContent=te.message;return;}
       if(!t){$('loginMsg').textContent='No tournament found. Run schema.sql in Supabase SQL Editor.';return;}
-      state.tournament=t; $('connection').textContent='SUPABASE'; $('connection').className='badge ok'; hideLogin(); await loadCloud(); subscribe(); subscribeViewerPresence();
+      state.tournament=t; $('connection').textContent='SUPABASE'; $('connection').className='badge ok'; hideLogin(); await loadCloud(); window.dispatchEvent(new Event('pcbl-admin-ready')); subscribe(); subscribeViewerPresence();
     }
   }
 
