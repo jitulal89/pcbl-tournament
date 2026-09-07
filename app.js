@@ -174,7 +174,7 @@
 
   function playerStatsData(filters={team:'all',type:'all',stage:'all'}){
     const done=state.matches.filter(m=>m.status==='done' && (filters.type==='all'||matchType(m)===filters.type) && (filters.stage==='all'||(isFinal(m)?'finals':'league')===filters.stage));
-    const rows=state.teams.flatMap(t=>(t.players||[]).map(p=>{
+    const rows=state.teams.flatMap(t=>(t.players||[]).filter(p=>!(/dummy/i.test(String(p.name||'')))).map(p=>{
       const appearances=done.filter(m=>matchPlayersForState(m.id).includes(p.id));
       const wins=appearances.filter(m=>matchWinner(m)===t.id).length;
       const losses=appearances.filter(m=>matchWinner(m)&&matchWinner(m)!==t.id).length;
@@ -187,16 +187,19 @@
   function renderPlayerStats(){
     const body=$('adminPlayerStatsBody'); if(!body) return;
     const filters={team:$('adminStatsTeam')?.value||'all',type:$('adminStatsType')?.value||'all',stage:$('adminStatsStage')?.value||'all'};
-    const rows=playerStatsData(filters); const total=rows.length, played=rows.reduce((n,x)=>n+x.played,0), wins=rows.reduce((n,x)=>n+x.wins,0);
-    $('adminStatsTeam').innerHTML='<option value="all">All Teams</option>'+state.teams.map(t=>`<option value="${esc(t.id)}">${esc(t.name)}</option>`).join(''); $('adminStatsTeam').value=filters.team;
-    $('adminPlayerStatsSummary').innerHTML=`<div><span>Players</span><b>${total}</b></div><div><span>Completed appearances</span><b>${played}</b></div><div><span>Player wins</span><b>${wins}</b></div><div><span>Avg. win rate</span><b>${total?Math.round(rows.reduce((n,x)=>n+x.winPct,0)/total):0}%</b></div>`;
-    body.innerHTML=rows.map((x,i)=>`<tr class="player-stat-row" data-admin-player-stats="${esc(x.p.id)}"><td><b>${i+1}</b></td><td><b>${esc(x.p.name)}</b></td><td>${esc(x.t.name)}</td><td>${x.played}</td><td class="result-win">${x.wins}</td><td class="result-loss">${x.losses}</td><td><b>${x.winPct}%</b></td><td>${x.singles}</td><td>${x.doubles}</td><td>${x.triplet}</td><td>${x.quad}</td></tr>`).join('')||'<tr><td colspan="11" class="muted">No completed player appearances found.</td></tr>';
-  }
-  function openAdminPlayerStats(id){
-    const t=state.teams.find(t=>(t.players||[]).some(p=>p.id===id)); const p=t?.players.find(p=>p.id===id); if(!p)return;
-    const rows=playerStatsData({team:t.id,type:'all',stage:'all'}); const x=rows.find(r=>r.p.id===id); if(!x)return;
-    $('adminPlayerStatsDetail').classList.remove('hidden'); $('adminPlayerStatsDetail').innerHTML=`<div class="player-detail-head"><div><h3>${esc(p.name)}</h3><p class="muted">${esc(t.name)} · ${x.played} played · ${x.wins} wins · ${x.losses} losses · ${x.winPct}% win rate</p></div><button class="btn small" id="closeAdminPlayerStats">Close</button></div><div class="player-history">${x.appearances.slice().sort((a,b)=>(a.match_no||0)-(b.match_no||0)).map(m=>{const w=matchWinner(m),isWin=w===t.id,isLoss=w&&w!==t.id;return `<div class="player-history-row"><span><b>${esc(isFinal(m)?finalNoLabel(m):matchType(m))}</b><small>${esc(isFinal(m)?'Finals':'League')} · ${esc(m.status)}</small></span><span>${esc(team(m.team_a)?.name||'—')} vs ${esc(team(m.team_b)?.name||'—')}</span><span class="${isWin?'result-win':isLoss?'result-loss':''}">${isWin?'WON':isLoss?'LOST':'—'}</span><span>${esc(fixtureScore(m))}</span></div>`}).join('')}</div>`;
-    $('closeAdminPlayerStats').onclick=()=> $('adminPlayerStatsDetail').classList.add('hidden');
+    const rows=playerStatsData(filters);
+    const active=rows.filter(x=>x.played>0);
+    const played=rows.reduce((n,x)=>n+x.played,0), wins=rows.reduce((n,x)=>n+x.wins,0);
+    const best=active[0];
+    $('adminStatsTeam').innerHTML='<option value="all">All Teams</option>'+state.teams.map(t=>`<option value="${esc(t.id)}">${esc(t.name)}</option>`).join('');
+    $('adminStatsTeam').value=filters.team;
+    $('adminPlayerStatsSummary').innerHTML=`
+      <div class="stat-kpi"><span>👤 Players</span><b>${rows.length}</b><small>Dummy excluded</small></div>
+      <div class="stat-kpi"><span>🏸 Appearances</span><b>${played}</b><small>Completed matches</small></div>
+      <div class="stat-kpi"><span>🏆 Wins</span><b>${wins}</b><small>Total player wins</small></div>
+      <div class="stat-kpi highlight"><span>🔥 Best Win Rate</span><b>${best?best.winPct:0}%</b><small>${best?esc(best.p.name):'—'}</small></div>`;
+    $('adminPlayerStatsPodium').innerHTML=active.slice(0,3).map((x,i)=>`<button type="button" class="podium-card rank-${i+1}" data-admin-player-stats="${esc(x.p.id)}"><div class="podium-rank">${['🥇','🥈','🥉'][i]}</div><div class="podium-name">${esc(x.p.name)}</div><div class="podium-team">${esc(x.t.name)}</div><div class="podium-win">${x.winPct}%</div><div class="podium-meta">${x.wins} wins · ${x.played} played</div></button>`).join('') || '<div class="empty-stats">No completed player appearances yet.</div>';
+    body.innerHTML=rows.map((x,i)=>`<tr class="player-stat-row" data-admin-player-stats="${esc(x.p.id)}"><td><span class="rank-pill">${i+1}</span></td><td><b>${esc(x.p.name)}</b><div class="winbar"><i style="width:${Math.min(100,x.winPct)}%"></i></div></td><td>${esc(x.t.name)}</td><td>${x.played}</td><td class="result-win">${x.wins}</td><td class="result-loss">${x.losses}</td><td><b>${x.winPct}%</b></td><td>${x.singles}</td><td>${x.doubles}</td><td>${x.triplet}</td><td>${x.quad}</td></tr>`).join('')||'<tr><td colspan="11" class="muted">No completed player appearances found.</td></tr>';
   }
   function render(){
     if(!$('stats')) return;
