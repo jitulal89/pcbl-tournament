@@ -8,7 +8,7 @@
     if(!sb) sb=window.supabase.createClient(cfg.SUPABASE_URL,cfg.SUPABASE_PUBLISHABLE_KEY);
     // Use a SECURITY DEFINER RPC first so Admin can read even when the table's
     // SELECT policy was not created correctly in an earlier SQL migration.
-    const rpc=await sb.rpc('get_player_suggestions_admin');
+    const rpc=await sb.rpc('get_player_suggestions');
     if(!rpc.error) return rpc.data||[];
     console.warn('Suggestions RPC failed, trying direct authenticated SELECT:',rpc.error);
     const direct=await sb.from('player_suggestions').select('id,tournament_id,liked,next_tournament,rating,created_at').order('created_at',{ascending:false});
