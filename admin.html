@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>PCBL Admin | Tournament Manager</title>
-<link rel="stylesheet" href="styles.css?v=28">
+<link rel="stylesheet" href="styles.css?v=26">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -19,7 +19,7 @@
 </div></section>
 <section id="mainView" class="hidden">
   <div class="hero"><div><span class="eyebrow">TOURNAMENT CONTROL</span><h1 id="tournamentTitle">PCBL Finals</h1><p>Teams, unlimited rosters, fixtures, lineups and live scoring.</p></div><div class="heroBtns"><button id="addMatchBtn" class="btn dark">+ Add Match</button><button class="btn" data-page="live">🔴 Live Courts</button></div></div>
-  <nav class="site-nav"><a data-page="dashboard" href="admin.html?page=dashboard">🏠 <span>Dashboard</span></a><a data-page="teams" href="admin.html?page=teams">👥 <span>Teams</span></a><a data-page="fixtures" href="admin.html?page=fixtures">📅 <span>Fixtures</span></a><a data-page="live" href="admin.html?page=live">🔴 <span>Live Scoring</span></a><a data-page="playerstats" href="admin.html?page=playerstats">🏅 <span>Player Stats</span></a><a data-page="rules" href="admin.html?page=rules">📖 <span>Rules</span></a><a data-page="finalformat" href="admin.html?page=finalformat">🏆 <span>Final Format</span></a><a data-page="suggestions" href="admin.html?page=suggestions">💬 <span>Suggestions</span></a></nav>
+  <nav class="site-nav"><a data-page="dashboard" href="?page=dashboard">🏠 <span>Dashboard</span></a><a data-page="teams" href="?page=teams">👥 <span>Teams</span></a><a data-page="fixtures" href="?page=fixtures">📅 <span>Fixtures</span></a><a data-page="live" href="?page=live">🔴 <span>Live Scoring</span></a><a data-page="playerstats" href="?page=playerstats">🏅 <span>Player Stats</span></a><a data-page="rules" href="?page=rules">📖 <span>Rules</span></a><a data-page="finalformat" href="?page=finalformat">🏆 <span>Final Format</span></a><a data-page="suggestions" href="?page=suggestions">💬 <span>Suggestions</span></a></nav>
   <div id="dashboard" class="page"><div id="stats" class="stats"></div><div class="two"><div class="card"><div class="cardhead"><h2>Team Standings</h2></div><div id="standings"></div></div><div class="card"><div class="cardhead"><h2>Schedule</h2></div><div id="schedule"></div></div></div></div>
   <div id="playerstats" class="page hidden">
     <div class="card player-stats-card">
@@ -31,11 +31,10 @@
       <div id="adminPlayerStatsDetail" class="player-stats-detail hidden"></div>
     </div>
   </div>
-  <div id="player" class="page hidden"><div class="card player-profile-page"><div class="page-back"><a class="btn small" href="admin.html?page=playerstats">← Back to Player Stats</a></div><div id="adminPlayerProfilePage"></div></div></div><div id="suggestions" class="page hidden"><div class="card suggestions-admin-card"><div class="stats-hero"><div><span class="eyebrow">ADMIN VIEW · PLAYER VOICE</span><h2>💬 Anonymous Suggestions</h2><p class="muted">Feedback submitted without player identity, team or email.</p></div></div><div class="suggestions-actions"><button type="button" class="btn small" id="refreshSuggestionsBtn">↻ Refresh Suggestions</button></div><div id="suggestionsSummary" class="suggestions-summary"></div><div id="suggestionsList" class="suggestions-list"><div class="muted">Loading suggestions…</div></div></div></div>
+  <div id="player" class="page hidden"><div class="card player-profile-page"><div class="page-back"><a class="btn small" href="?page=playerstats">← Back to Player Stats</a></div><div id="adminPlayerProfilePage"></div></div></div><div id="suggestions" class="page hidden"><div class="card suggestions-admin-card"><div class="stats-hero"><div><span class="eyebrow">ADMIN VIEW · PLAYER VOICE</span><h2>💬 Anonymous Suggestions</h2><p class="muted">Feedback submitted without player identity, team or email.</p></div></div><div class="suggestions-actions"><button type="button" class="btn small" id="refreshSuggestionsBtn">↻ Refresh Suggestions</button></div><div id="suggestionsSummary" class="suggestions-summary"></div><div id="suggestionsList" class="suggestions-list"><div class="muted">Loading suggestions…</div></div></div></div>
   <div id="teams" class="page hidden"><div class="two"><div class="card"><h2>Add Team</h2><form id="teamForm"><input id="teamName" placeholder="Team name" required><input id="captain" placeholder="Captain"><button class="btn dark full">Add Team</button></form></div><div class="card"><h2>Add Player</h2><form id="playerForm"><select id="playerTeam" required></select><input id="playerName" placeholder="Player name" required><select id="gender"><option value="M">Male</option><option value="F">Female</option></select><button class="btn dark full">Add Player</button></form></div></div><div id="teamCards" class="teamgrid"></div></div>
   <div id="fixtures" class="page hidden"><div class="card"><div class="cardhead"><h2>Fixtures</h2><button id="addMatchBtn2" class="btn dark small">+ Match</button></div><div class="tablewrap"><table><thead><tr><th>Time</th><th>Court</th><th>Type</th><th>Team A</th><th>Team B</th><th>Lineup</th><th>Status</th><th>Final Score</th><th></th></tr></thead><tbody id="fixturesBody"></tbody></table></div></div></div>
-  <div id="more" class="page hidden"><div class="card more-page"><span class="eyebrow">ADMIN MENU</span><h2>☰ More</h2><p class="muted">Additional tournament management pages.</p><div class="more-grid"><a data-page="teams" href="admin.html?page=teams"><span>👥</span><b>Teams</b><small>Manage teams and players</small></a><a data-page="rules" href="admin.html?page=rules"><span>📖</span><b>Rules</b><small>View tournament rules</small></a><a data-page="finalformat" href="admin.html?page=finalformat"><span>🏆</span><b>Final Format</b><small>View Finals format</small></a><a data-page="suggestions" href="admin.html?page=suggestions"><span>💬</span><b>Suggestions</b><small>View anonymous player feedback</small></a></div></div></div>
-  <div id="live" class="page hidden"><div class="livebar"><div><b>Live scoring</b><span class="muted"> Changes update automatically.</span></div><div id="adminViewerCount" class="viewer-count">👁 0 watching live</div><div class="heroBtns"><a class="btn" href="admin.html?page=dashboard">🏠 Dashboard</a><a class="btn" href="live.html" target="_blank">Open public screen</a></div></div><div id="liveGrid" class="livegrid"></div></div>
+  <div id="live" class="page hidden"><div class="livebar"><div><b>Live scoring</b><span class="muted"> Changes update automatically.</span></div><div id="adminViewerCount" class="viewer-count">👁 0 watching live</div><div class="heroBtns"><a class="btn" href="?page=dashboard">🏠 Dashboard</a><a class="btn" href="live.html" target="_blank">Open public screen</a></div></div><div id="liveGrid" class="livegrid"></div></div>
 <section id="finalformat" class="page hidden">
 
 <div class="hero"><div><span class="eyebrow">FINAL FORMAT</span><h1>PCBL FINALS</h1><p>Top 2 teams from the League · 6 matches · 225 total points · highest cumulative score wins.</p></div><div class="heroBtns"><a class="btn dark" href="live.html">🔴 Live Scores</a></div></div>
@@ -91,15 +90,47 @@
 </div>
 </section></main>
 <div id="modal" class="modal hidden"><div id="modalBox" class="modalbox"></div></div>
-<script src="config.js?v=26"></script><script src="finals.js?v=18"></script><script src="app.js?v=28"></script><script src="suggestions-admin.js?v=26"></script>
+<script src="config.js?v=26"></script><script src="finals.js?v=18"></script><script src="app.js?v=26"></script><script src="suggestions-admin.js?v=26"></script>
 
 <nav class="mobile-bottom-nav admin-mobile-nav" aria-label="Admin mobile navigation">
-  <a data-page="dashboard" href="admin.html?page=dashboard">🏠<span>Dashboard</span></a>
-  <a data-page="live" href="admin.html?page=live">🔴<span>Live</span></a>
-  <a data-page="playerstats" href="admin.html?page=playerstats">🏅<span>Stats</span></a>
-  <a data-page="fixtures" href="admin.html?page=fixtures">📅<span>Fixtures</span></a>
-  <a data-page="more" href="admin.html?page=more">☰<span>More</span></a>
-
+  <a data-page="dashboard" href="?page=dashboard">🏠<span>Dashboard</span></a>
+  <a data-page="live" href="?page=live">🔴<span>Live</span></a>
+  <a data-page="playerstats" href="?page=playerstats">🏅<span>Stats</span></a>
+  <a data-page="fixtures" href="?page=fixtures">📅<span>Fixtures</span></a>
+  <details class="mobile-more">
+    <summary class="mobile-more-btn">☰<span>More</span></summary>
+    <div class="mobile-more-menu">
+      <a data-page="teams" href="?page=teams">👥 Teams</a>
+      <a data-page="rules" href="?page=rules">📖 Rules</a>
+      <a data-page="finalformat" href="?page=finalformat">🏆 Final Format</a>
+      <a data-page="suggestions" href="?page=suggestions">💬 Suggestions</a>
+    </div>
+  </details>
 </nav>
-
+<script>
+(function(){
+  function activePage(){
+    const q=new URLSearchParams(location.search).get('page');
+    if(q) return q;
+    const f=location.pathname.split('/').pop().toLowerCase();
+    return ({'index.html':'dashboard','live.html':'live','player-stats.html':'playerstats','fixtures.html':'fixtures','teams.html':'teams','rules_public.html':'rules','final_format.html':'finalformat','player.html':'player'})[f]||'dashboard';
+  }
+  function mark(){
+    const p=activePage();
+    document.querySelectorAll('.mobile-bottom-nav [data-page]').forEach(a=>a.classList.toggle('active',a.dataset.page===p));
+    const more=document.querySelector('.admin-mobile-nav .mobile-more');
+    const moreBtn=document.querySelector('.admin-mobile-nav .mobile-more-btn');
+    const inMore=['teams','rules','finalformat','suggestions'].includes(p);
+    if(more) more.open=inMore;
+    if(moreBtn) moreBtn.classList.toggle('active',inMore);
+  }
+  document.addEventListener('click',function(e){
+    if(e.target.closest('.mobile-bottom-nav .mobile-more-menu a')){
+      const d=e.target.closest('.mobile-more');
+      setTimeout(()=>{if(d)d.open=false;mark();},0);
+    } else if(e.target.closest('.mobile-bottom-nav a')) setTimeout(mark,0);
+  },true);
+  window.addEventListener('popstate',mark); mark();
+})();
+</script>
 </body></html>
