@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>PCBL Finals | Public Tournament</title>
-<link rel="stylesheet" href="styles.css?v=22">
+<link rel="stylesheet" href="styles.css?v=27">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -18,12 +18,13 @@
   </section>
   <nav id="publicNav" class="site-nav">
     <a data-page="dashboard" href="index.html">🏠 <span>Dashboard</span></a>
+    <a data-page="teams" href="teams.html">👥 <span>Teams</span></a>
+    <a data-page="fixtures" href="fixtures.html">📅 <span>Fixtures</span></a>
     <a data-page="live" href="live.html">🔴 <span>Live Scores</span></a>
     <a data-page="playerstats" href="player-stats.html">🏅 <span>Player Stats</span></a>
-    <a data-page="fixtures" href="fixtures.html">📅 <span>Fixtures</span></a>
-    <a data-page="teams" href="teams.html">👥 <span>Teams</span></a>
     <a data-page="rules" href="rules_public.html">📖 <span>Rules</span></a>
     <a data-page="finalformat" href="final_format.html">🏆 <span>Final Format</span></a>
+    <a data-page="suggestions" href="suggestions.html">💬 <span>Suggestions</span></a>
   </nav>
 
   <section id="dashboard" class="page">
@@ -115,7 +116,7 @@
 <div id="teamDetailModal" class="modal hidden"><div class="modalbox team-detail-modal"><div class="cardhead"><h2 id="teamDetailTitle">Team Details</h2><button class="btn" id="closeTeamDetail">Close</button></div><div id="teamDetailBody"></div></div></div>
 <script src="config.js"></script><script src="finals.js?v=18"></script><script src="public.js?v=18"></script>
 
-<nav class="mobile-bottom-nav" aria-label="Mobile navigation"><a href="index.html">🏠<span>Home</span></a><a href="live.html">🔴<span>Live</span></a><a href="player-stats.html">🏅<span>Stats</span></a><a href="fixtures.html">📅<span>Fixtures</span></a><a href="more.html">☰<span>More</span></a></nav>
+<nav class="mobile-bottom-nav" aria-label="Mobile navigation"><a data-page="dashboard" href="index.html">🏠<span>Home</span></a><a data-page="live" href="live.html">🔴<span>Live</span></a><a data-page="playerstats" href="player-stats.html">🏅<span>Stats</span></a><a data-page="fixtures" href="fixtures.html">📅<span>Fixtures</span></a><a href="more.html">☰<span>More</span></a></nav>
 <script>
 (function(){
   function activePage(){
