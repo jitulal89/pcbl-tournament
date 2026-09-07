@@ -9,3 +9,6 @@ Changes:
 - No database changes required.
 
 Upload all files to the GitHub Pages site, preserving filenames.
+
+
+V19 adds anonymous player suggestions. Run player_suggestions.sql once in Supabase SQL Editor. No existing tables/data are dropped or modified.

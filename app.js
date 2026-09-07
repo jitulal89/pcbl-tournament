@@ -24,10 +24,10 @@
   function team(id){ return state.teams.find(t=>t.id===id); }
   function player(id){ for(const t of state.teams){ const p=t.players.find(x=>x.id===id); if(p) return p; } return null; }
 
-  function requestedPage(){const p=new URLSearchParams(location.search).get('page');if(['dashboard','live','playerstats','fixtures','teams','rules','finalformat','player'].includes(p))return p;const f=location.pathname.split('/').pop().toLowerCase();const map={'admin.html':'dashboard'};return map[f]||'dashboard';}
+  function requestedPage(){const p=new URLSearchParams(location.search).get('page');if(['dashboard','live','playerstats','fixtures','teams','rules','finalformat','player','suggestions'].includes(p))return p;const f=location.pathname.split('/').pop().toLowerCase();const map={'admin.html':'dashboard'};return map[f]||'dashboard';}
   function requestedPlayer(){return new URLSearchParams(location.search).get('player')||'';}
-  function show(page, updateUrl=true){if(!['dashboard','live','playerstats','fixtures','teams','rules','finalformat','player'].includes(page)) page='dashboard';document.querySelectorAll('.page').forEach(x=>x.classList.add('hidden'));const el=$(page);if(el)el.classList.remove('hidden');document.querySelectorAll('nav a').forEach(x=>x.classList.toggle('active',x.dataset.page===page));if(updateUrl){const u=new URL(location.href);u.searchParams.set('page',page);if(page!=='player')u.searchParams.delete('player');history.pushState({},'',u);}}
-  function showRequestedPage(){const page=requestedPage();show(page,false);const pid=requestedPlayer();if(page==='player'&&pid)openAdminPlayerStats(pid,false);}
+  function show(page, updateUrl=true){if(!['dashboard','live','playerstats','fixtures','teams','rules','finalformat','player','suggestions'].includes(page)) page='dashboard';document.querySelectorAll('.page').forEach(x=>x.classList.add('hidden'));const el=$(page);if(el)el.classList.remove('hidden');document.querySelectorAll('nav a').forEach(x=>x.classList.toggle('active',x.dataset.page===page));if(updateUrl){const u=new URL(location.href);u.searchParams.set('page',page);if(page!=='player')u.searchParams.delete('player');history.pushState({},'',u);}}
+  function showRequestedPage(){const page=requestedPage();show(page,false);const pid=requestedPlayer();if(page==='player'&&pid)openAdminPlayerStats(pid,false); if(page==='suggestions' && window.renderAdminSuggestions) window.renderAdminSuggestions();}
   function matchType(m){ return m?.match_type || m?.type || ''; }
   function isTriplet(m){ return matchType(m) === "Men's Triplet"; }
   function isQuadruple(m){ return matchType(m) === "Men's Quadruple"; }
