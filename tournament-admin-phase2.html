@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tournament Admin - Phase 2</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--bg:#f4f7fb;--card:#fff;--text:#172033;--muted:#6b7280;--line:#e5e7eb;--primary:#2563eb;--primary2:#1d4ed8;--success:#15803d;--danger:#dc2626;--warning:#b45309;--shadow:0 8px 28px rgba(15,23,42,.08)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;color:var(--text)}
+button,input,select,textarea{font:inherit}button{cursor:pointer}
+.top{background:#111827;color:#fff;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:16px;position:sticky;top:0;z-index:20}
+.brand{font-weight:800;font-size:18px}.top-right{display:flex;align-items:center;gap:10px}.user{font-size:13px;color:#d1d5db}
+.btn{border:0;border-radius:9px;padding:9px 14px;font-weight:700}.btn-primary{background:var(--primary);color:#fff}.btn-primary:hover{background:var(--primary2)}
+.btn-secondary{background:#eef2ff;color:#1e3a8a}.btn-light{background:#fff;color:#111827;border:1px solid #d1d5db}.btn-danger{background:#fee2e2;color:#991b1b}.btn-success{background:#dcfce7;color:#166534}
+.app{display:flex;min-height:calc(100vh - 60px)}.side{width:245px;background:#fff;border-right:1px solid var(--line);padding:18px 12px;flex-shrink:0}
+.nav{display:flex;flex-direction:column;gap:5px}.nav button{border:0;background:transparent;text-align:left;padding:11px 13px;border-radius:9px;color:#374151;font-weight:700}.nav button.active,.nav button:hover{background:#eff6ff;color:#1d4ed8}
+.main{flex:1;padding:22px;max-width:1500px}.page-head{display:flex;justify-content:space-between;align-items:flex-start;gap:15px;margin-bottom:18px}.page-head h1{margin:0 0 5px;font-size:26px}.sub{color:var(--muted);font-size:14px}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:17px;box-shadow:var(--shadow)}.stat .num{font-size:28px;font-weight:800;margin-top:6px}.stat .lbl{font-size:13px;color:var(--muted)}
+.section{margin-top:18px}.section h2{font-size:17px;margin:0 0 12px}.toolbar{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+input,select,textarea{width:100%;border:1px solid #d1d5db;border-radius:8px;padding:9px 10px;background:#fff;color:#111827}textarea{min-height:90px;resize:vertical}
+.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.form-grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+label{display:block;font-size:12px;font-weight:800;color:#374151;margin-bottom:5px}.full{grid-column:1/-1}
+.table-wrap{overflow:auto;background:#fff;border:1px solid var(--line);border-radius:12px}.table{width:100%;border-collapse:collapse;min-width:760px}.table th,.table td{padding:11px 12px;border-bottom:1px solid var(--line);text-align:left;font-size:13px}.table th{background:#f8fafc;font-size:12px;text-transform:uppercase;color:#6b7280}.table tr:last-child td{border-bottom:0}
+.badge{display:inline-flex;align-items:center;border-radius:999px;padding:4px 8px;font-size:11px;font-weight:800}.pending{background:#fef3c7;color:#92400e}.approved,.confirmed,.generated{background:#dcfce7;color:#166534}.rejected,.withdrawn{background:#fee2e2;color:#991b1b}.draft{background:#e5e7eb;color:#374151}.live{background:#dbeafe;color:#1d4ed8}
+.page{display:none}.page.active{display:block}
+.notice{padding:12px 14px;border-radius:10px;background:#eff6ff;color:#1e40af;font-size:13px;margin-bottom:12px}.error{background:#fef2f2;color:#991b1b}.success{background:#f0fdf4;color:#166534}
+.empty{text-align:center;color:var(--muted);padding:35px}
+.modal-back{display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:100;align-items:center;justify-content:center;padding:15px}.modal-back.open{display:flex}.modal{background:#fff;border-radius:15px;width:min(650px,100%);max-height:90vh;overflow:auto;padding:20px}.modal h2{margin-top:0}.modal-head{display:flex;justify-content:space-between;gap:10px}
+.bracket{display:flex;gap:28px;overflow:auto;padding:10px 5px 20px}.round{min-width:220px}.round h3{font-size:13px;color:#6b7280;text-align:center}.match{background:#fff;border:1px solid #dbe1ea;border-radius:10px;margin:12px 0;overflow:hidden;box-shadow:0 3px 10px rgba(15,23,42,.05)}.match div{padding:8px 10px;font-size:13px}.match div+div{border-top:1px solid #edf0f4}.winner{font-weight:800;background:#f0fdf4}.bye{color:#9ca3af;font-style:italic}
+.checks{display:flex;flex-wrap:wrap;gap:7px}.check{border:1px solid #d1d5db;border-radius:8px;padding:8px 10px;background:#fff}.check input{width:auto;margin-right:6px}
+.small{font-size:12px;color:var(--muted)}.right{margin-left:auto}.hidden{display:none!important}
+@media(max-width:900px){.side{width:68px;padding:12px 8px}.nav button{font-size:0;text-align:center}.nav button::first-letter{font-size:18px}.main{padding:15px}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.form-grid,.form-grid.three{grid-template-columns:1fr}}
+@media(max-width:600px){.top{padding:12px}.user{display:none}.grid{grid-template-columns:1fr}.page-head{flex-direction:column}.main{padding:12px}}
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="brand">🏆 Tournament Admin</div>
+  <div class="top-right">
+    <span id="userEmail" class="user"></span>
+    <button class="btn btn-light" onclick="signOut()">Sign out</button>
+  </div>
+</div>
+
+<div class="app">
+  <aside class="side">
+    <div class="nav">
+      <button data-page="dashboard" class="active">📊 Dashboard</button>
+      <button data-page="categories">📂 Categories</button>
+      <button data-page="registrations">👥 Registrations</button>
+      <button data-page="entries">🎯 Entries</button>
+      <button data-page="draw">🏸 Draw & Fixtures</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div id="globalMessage"></div>
+
+    <section id="page-dashboard" class="page active">
+      <div class="page-head">
+        <div><h1 id="dashTitle">Tournament Dashboard</h1><div class="sub">Manage registration, categories, entries and knockout draws.</div></div>
+        <button class="btn btn-primary" onclick="openCategoryModal()">+ Add Category</button>
+      </div>
+      <div class="card" style="margin-bottom:15px">
+        <label>Active Tournament</label>
+        <select id="tournamentSelect" onchange="selectTournament(this.value)"></select>
+      </div>
+      <div class="grid">
+        <div class="card stat"><div class="lbl">Categories</div><div class="num" id="statCategories">0</div></div>
+        <div class="card stat"><div class="lbl">Registrations</div><div class="num" id="statRegistrations">0</div></div>
+        <div class="card stat"><div class="lbl">Approved</div><div class="num" id="statApproved">0</div></div>
+        <div class="card stat"><div class="lbl">Entries</div><div class="num" id="statEntries">0</div></div>
+      </div>
+      <div class="section card">
+        <h2>Registration Settings</h2>
+        <div class="form-grid">
+          <div><label>Registration status</label><select id="regEnabled"><option value="false">Closed</option><option value="true">Open</option></select></div>
+          <div><label>Require phone</label><select id="requirePhone"><option value="true">Yes</option><option value="false">No</option></select></div>
+          <div><label>Require email</label><select id="requireEmail"><option value="false">No</option><option value="true">Yes</option></select></div>
+          <div><label>Require date of birth</label><select id="requireDob"><option value="false">No</option><option value="true">Yes</option></select></div>
+          <div><label>Require CricHeroes profile</label><select id="requireCricheroes"><option value="false">No</option><option value="true">Yes</option></select></div>
+          <div class="full"><label>Instructions</label><textarea id="regInstructions" placeholder="Instructions shown on the public registration page"></textarea></div>
+        </div>
+        <div style="margin-top:12px"><button class="btn btn-primary" onclick="saveRegistrationSettings()">Save Registration Settings</button></div>
+      </div>
+    </section>
+
+    <section id="page-categories" class="page">
+      <div class="page-head">
+        <div><h1>Categories</h1><div class="sub">Configure singles, doubles, mixed and team events.</div></div>
+        <button class="btn btn-primary" onclick="openCategoryModal()">+ Add Category</button>
+      </div>
+      <div id="categoriesTable"></div>
+    </section>
+
+    <section id="page-registrations" class="page">
+      <div class="page-head">
+        <div><h1>Registrations</h1><div class="sub">Review public registrations before creating tournament entries.</div></div>
+        <button class="btn btn-light" onclick="loadRegistrations()">↻ Refresh</button>
+      </div>
+      <div class="toolbar">
+        <select id="registrationFilter" style="max-width:180px" onchange="renderRegistrations()">
+          <option value="">All statuses</option><option value="pending">Pending</option><option value="approved">Approved</option><option value="rejected">Rejected</option><option value="withdrawn">Withdrawn</option>
+        </select>
+        <input id="registrationSearch" style="max-width:280px" placeholder="Search player..." oninput="renderRegistrations()">
+      </div>
+      <div id="registrationsTable"></div>
+    </section>
+
+    <section id="page-entries" class="page">
+      <div class="page-head">
+        <div><h1>Category Entries</h1><div class="sub">Create singles, doubles and team entries from approved registrations.</div></div>
+        <button class="btn btn-primary" onclick="openEntryModal()">+ Create Entry</button>
+      </div>
+      <div class="toolbar">
+        <select id="entryCategoryFilter" style="max-width:300px" onchange="renderEntries()"><option value="">All categories</option></select>
+      </div>
+      <div id="entriesTable"></div>
+    </section>
+
+    <section id="page-draw" class="page">
+      <div class="page-head">
+        <div><h1>Draw & Fixtures</h1><div class="sub">Generate and view a knockout bracket for a category.</div></div>
+        <button class="btn btn-primary" onclick="generateSelectedDraw()">Generate Knockout Draw</button>
+      </div>
+      <div class="card">
+        <label>Category</label>
+        <select id="drawCategory" onchange="loadDrawForCategory(this.value)"></select>
+        <div class="small" style="margin-top:8px">The draw is generated from confirmed category entries. Existing generated draws are protected from accidental regeneration.</div>
+      </div>
+      <div id="drawInfo" class="section"></div>
+      <div id="bracket" class="section"></div>
+    </section>
+  </main>
+</div>
+
+<!-- Category Modal -->
+<div id="categoryModal" class="modal-back">
+  <div class="modal">
+    <div class="modal-head"><h2 id="categoryModalTitle">Add Category</h2><button class="btn btn-light" onclick="closeModal('categoryModal')">✕</button></div>
+    <div class="form-grid">
+      <div class="full"><label>Category name *</label><input id="catName" placeholder="Men's Singles"></div>
+      <div><label>Event type *</label><select id="catEventType"><option value="singles">Singles</option><option value="doubles">Doubles</option><option value="team">Team</option></select></div>
+      <div><label>Format *</label><select id="catFormat"><option value="knockout">Knockout</option><option value="league">League</option><option value="league_finals">League + Finals</option></select></div>
+      <div><label>Gender rule</label><select id="catGender"><option value="open">Open</option><option value="male">Male</option><option value="female">Female</option><option value="mixed">Mixed</option></select></div>
+      <div><label>Display order</label><input id="catOrder" type="number" min="1" value="1"></div>
+      <div><label>Minimum age</label><input id="catMinAge" type="number" min="0" placeholder="Optional"></div>
+      <div><label>Maximum age</label><input id="catMaxAge" type="number" min="0" placeholder="Optional"></div>
+      <div><label>Maximum entries</label><input id="catMaxEntries" type="number" min="1" placeholder="Optional"></div>
+      <div><label>Status</label><select id="catStatus"><option value="draft">Draft</option><option value="open">Open</option><option value="closed">Closed</option></select></div>
+    </div>
+    <div style="margin-top:15px"><button class="btn btn-primary" onclick="saveCategory()">Save Category</button></div>
+  </div>
+</div>
+
+<!-- Entry Modal -->
+<div id="entryModal" class="modal-back">
+  <div class="modal">
+    <div class="modal-head"><h2>Create Category Entry</h2><button class="btn btn-light" onclick="closeModal('entryModal')">✕</button></div>
+    <div class="form-grid">
+      <div class="full"><label>Category *</label><select id="entryCategory" onchange="loadEntryCandidates()"></select></div>
+      <div class="full"><label>Entry members *</label><div id="entryCandidates" class="checks"></div></div>
+    </div>
+    <div class="notice" style="margin-top:12px">Singles = 1 member, Doubles = 2 members. Team entries can contain multiple members.</div>
+    <button class="btn btn-primary" onclick="saveEntry()">Create Entry</button>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://bfalondvpfijthberomf.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_kiyREqgce0B0-IZ8jOUkdQ_w8pas2ae';
+const { createClient } = supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let session = null;
+let currentTournament = null;
+let tournaments = [];
+let categories = [];
+let registrations = [];
+let entries = [];
+let editingCategoryId = null;
+
+const $ = id => document.getElementById(id);
+
+function msg(text, type='success'){
+  $('globalMessage').innerHTML = text ? `<div class="notice ${type==='error'?'error':'success'}">${escapeHtml(text)}</div>` : '';
+  if(text) setTimeout(()=>{$('globalMessage').innerHTML=''},4500);
+}
+function escapeHtml(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));}
+function closeModal(id){$(id).classList.remove('open')}
+function openModal(id){$(id).classList.add('open')}
+
+document.querySelectorAll('.nav button').forEach(btn=>{
+  btn.onclick=()=>{
+    document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+    $('page-'+btn.dataset.page).classList.add('active');
+    if(btn.dataset.page==='categories') renderCategories();
+    if(btn.dataset.page==='registrations') renderRegistrations();
+    if(btn.dataset.page==='entries') renderEntries();
+    if(btn.dataset.page==='draw') prepareDrawPage();
+  };
+});
+
+async function init(){
+  const {data:{session:s}} = await db.auth.getSession();
+  session=s;
+  if(!s){ $('userEmail').textContent='Not signed in'; return; }
+  $('userEmail').textContent=s.user.email || '';
+  await loadTournaments();
+}
+db.auth.onAuthStateChange((_event,s)=>{session=s; if(s){$('userEmail').textContent=s.user.email||'';loadTournaments();}});
+async function signOut(){await db.auth.signOut();location.href='tournament-manager.html';}
+
+async function loadTournaments(){
+  const {data,error}=await db.from('tournaments').select('*').order('created_at',{ascending:false});
+  if(error){msg(error.message,'error');return}
+  tournaments=data||[];
+  $('tournamentSelect').innerHTML=tournaments.length
+    ? tournaments.map(t=>`<option value="${t.id}">${escapeHtml(t.name)}${t.status==='live'?' • LIVE':''}</option>`).join('')
+    : '<option value="">No tournaments</option>';
+  if(!tournaments.length)return;
+  const saved=localStorage.getItem('generic_admin_tournament');
+  const chosen=tournaments.find(t=>t.id===saved)||tournaments[0];
+  $('tournamentSelect').value=chosen.id;
+  await selectTournament(chosen.id);
+}
+async function selectTournament(id){
+  currentTournament=tournaments.find(t=>t.id===id);
+  if(!currentTournament)return;
+  localStorage.setItem('generic_admin_tournament',id);
+  $('dashTitle').textContent=currentTournament.name;
+  await Promise.all([loadCategories(),loadRegistrations(),loadEntries(),loadRegistrationSettings()]);
+  updateStats();
+  populateCategorySelectors();
+}
+function updateStats(){
+  $('statCategories').textContent=categories.length;
+  $('statRegistrations').textContent=registrations.length;
+  $('statApproved').textContent=registrations.filter(x=>x.status==='approved').length;
+  $('statEntries').textContent=entries.length;
+}
+
+async function loadCategories(){
+  if(!currentTournament)return;
+  const {data,error}=await db.from('tournament_categories').select('*').eq('tournament_id',currentTournament.id).order('display_order',{ascending:true});
+  if(error){msg(error.message,'error');return}
+  categories=data||[];
+  renderCategories(); populateCategorySelectors();
+}
+function renderCategories(){
+  if(!categories.length){$('categoriesTable').innerHTML='<div class="card empty">No categories yet. Click <b>Add Category</b> to create your first event.</div>';return}
+  $('categoriesTable').innerHTML=`<div class="table-wrap"><table class="table"><thead><tr><th>Order</th><th>Category</th><th>Event</th><th>Format</th><th>Gender</th><th>Entries</th><th>Status</th><th>Actions</th></tr></thead><tbody>${
+    categories.map(c=>{
+      const count=entries.filter(e=>e.category_id===c.id&&e.status==='confirmed').length;
+      return `<tr><td>${c.display_order??''}</td><td><b>${escapeHtml(c.name)}</b></td><td>${escapeHtml(c.event_type)}</td><td>${escapeHtml(c.format_type)}</td><td>${escapeHtml(c.gender_rule)}</td><td>${count}${c.max_entries?'/'+c.max_entries:''}</td><td><span class="badge ${c.status==='draft'?'draft':c.status==='open'?'approved':'pending'}">${escapeHtml(c.status)}</span></td><td><button class="btn btn-secondary" onclick="editCategory('${c.id}')">Edit</button></td></tr>`
+    }).join('')
+  }</tbody></table></div>`;
+}
+function openCategoryModal(id=null){
+  editingCategoryId=id;
+  $('categoryModalTitle').textContent=id?'Edit Category':'Add Category';
+  const c=id?categories.find(x=>x.id===id):null;
+  $('catName').value=c?.name||'';
+  $('catEventType').value=c?.event_type||'singles';
+  $('catFormat').value=c?.format_type||'knockout';
+  $('catGender').value=c?.gender_rule||'open';
+  $('catOrder').value=c?.display_order||categories.length+1;
+  $('catMinAge').value=c?.min_age??'';
+  $('catMaxAge').value=c?.max_age??'';
+  $('catMaxEntries').value=c?.max_entries??'';
+  $('catStatus').value=c?.status||'draft';
+  openModal('categoryModal');
+}
+function editCategory(id){openCategoryModal(id)}
+async function saveCategory(){
+  if(!currentTournament)return;
+  const payload={
+    tournament_id:currentTournament.id,
+    name:$('catName').value.trim(),
+    event_type:$('catEventType').value,
+    format_type:$('catFormat').value,
+    gender_rule:$('catGender').value,
+    display_order:Number($('catOrder').value||1),
+    min_age:$('catMinAge').value?Number($('catMinAge').value):null,
+    max_age:$('catMaxAge').value?Number($('catMaxAge').value):null,
+    max_entries:$('catMaxEntries').value?Number($('catMaxEntries').value):null,
+    status:$('catStatus').value
+  };
+  if(!payload.name){msg('Category name is required','error');return}
+  let result;
+  if(editingCategoryId) result=await db.from('tournament_categories').update(payload).eq('id',editingCategoryId);
+  else result=await db.from('tournament_categories').insert(payload);
+  if(result.error){msg(result.error.message,'error');return}
+  closeModal('categoryModal');msg('Category saved');await loadCategories();
+}
+
+async function loadRegistrationSettings(){
+  const {data,error}=await db.from('registration_forms').select('*').eq('tournament_id',currentTournament.id).maybeSingle();
+  if(error){msg(error.message,'error');return}
+  if(data){
+    $('regEnabled').value=String(data.public_enabled);
+    $('requirePhone').value=String(data.require_phone);
+    $('requireEmail').value=String(data.require_email);
+    $('requireDob').value=String(data.require_date_of_birth);
+    $('requireCricheroes').value=String(data.require_cricheroes);
+    $('regInstructions').value=data.instructions||'';
+  }
+}
+async function saveRegistrationSettings(){
+  const payload={
+    tournament_id:currentTournament.id,
+    public_enabled:$('regEnabled').value==='true',
+    require_phone:$('requirePhone').value==='true',
+    require_email:$('requireEmail').value==='true',
+    require_date_of_birth:$('requireDob').value==='true',
+    require_cricheroes:$('requireCricheroes').value==='true',
+    instructions:$('regInstructions').value
+  };
+  const {error}=await db.from('registration_forms').upsert(payload,{onConflict:'tournament_id'});
+  if(error){msg(error.message,'error');return}
+  msg(payload.public_enabled?'Registration is now OPEN':'Registration is now CLOSED');
+}
+
+async function loadRegistrations(){
+  if(!currentTournament)return;
+  const {data,error}=await db.from('tournament_registrations').select('*').eq('tournament_id',currentTournament.id).order('submitted_at',{ascending:false});
+  if(error){msg(error.message,'error');return}
+  registrations=data||[];updateStats();renderRegistrations();
+}
+function renderRegistrations(){
+  const filter=$('registrationFilter').value;
+  const search=$('registrationSearch').value.trim().toLowerCase();
+  let rows=registrations.filter(r=>(!filter||r.status===filter)&&(!search||`${r.full_name} ${r.email||''} ${r.phone||''}`.toLowerCase().includes(search)));
+  if(!rows.length){$('registrationsTable').innerHTML='<div class="card empty">No registrations found.</div>';return}
+  $('registrationsTable').innerHTML=`<div class="table-wrap"><table class="table"><thead><tr><th>Name</th><th>Gender</th><th>Phone</th><th>CricHeroes</th><th>Status</th><th>Submitted</th><th>Action</th></tr></thead><tbody>${
+    rows.map(r=>`<tr><td><b>${escapeHtml(r.full_name)}</b><div class="small">${escapeHtml(r.city||'')}</div></td><td>${escapeHtml(r.gender||'')}</td><td>${escapeHtml(r.phone||'')}</td><td>${r.cricheroes_url?`<a href="${escapeHtml(r.cricheroes_url)}" target="_blank" rel="noopener">Profile</a>`:'—'}</td><td><span class="badge ${r.status}">${r.status}</span></td><td>${new Date(r.submitted_at).toLocaleString()}</td><td>${r.status==='pending'?`<button class="btn btn-success" onclick="reviewRegistration('${r.id}','approved')">Approve</button> <button class="btn btn-danger" onclick="reviewRegistration('${r.id}','rejected')">Reject</button>`:`<button class="btn btn-light" onclick="reviewRegistration('${r.id}','pending')">Reset</button>`}</td></tr>`).join('')
+  }</tbody></table></div>`;
+}
+async function reviewRegistration(id,status){
+  const {error}=await db.from('tournament_registrations').update({status,reviewed_at:new Date().toISOString(),reviewed_by:session.user.id}).eq('id',id);
+  if(error){msg(error.message,'error');return}
+  msg(`Registration ${status}`);await loadRegistrations();
+}
+
+async function loadEntries(){
+  if(!currentTournament)return;
+  const {data,error}=await db.from('tournament_entries').select('*, tournament_entry_members(id,registration_id,member_order)').eq('tournament_id',currentTournament.id).order('created_at',{ascending:true});
+  if(error){msg(error.message,'error');return}
+  entries=data||[];updateStats();renderEntries();
+}
+function populateCategorySelectors(){
+  const options='<option value="">Select category</option>'+categories.map(c=>`<option value="${c.id}">${escapeHtml(c.name)} — ${escapeHtml(c.event_type)}</option>`).join('');
+  $('entryCategory').innerHTML=options;
+  $('entryCategoryFilter').innerHTML='<option value="">All categories</option>'+categories.map(c=>`<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
+  $('drawCategory').innerHTML=options;
+}
+function entryMemberNames(e){
+  const ids=(e.tournament_entry_members||[]).sort((a,b)=>a.member_order-b.member_order).map(x=>x.registration_id);
+  return ids.map(id=>registrations.find(r=>r.id===id)?.full_name||'Unknown').join(' + ') || '—';
+}
+function renderEntries(){
+  const filter=$('entryCategoryFilter').value;
+  const rows=entries.filter(e=>!filter||e.category_id===filter);
+  if(!rows.length){$('entriesTable').innerHTML='<div class="card empty">No entries yet. Create entries from approved registrations.</div>';return}
+  $('entriesTable').innerHTML=`<div class="table-wrap"><table class="table"><thead><tr><th>Category</th><th>Entry</th><th>Type</th><th>Seed</th><th>Status</th><th>Created</th></tr></thead><tbody>${
+    rows.map(e=>`<tr><td>${escapeHtml(categories.find(c=>c.id===e.category_id)?.name||'')}</td><td><b>${escapeHtml(entryMemberNames(e))}</b></td><td>${escapeHtml(e.entry_type)}</td><td>${e.seed||'—'}</td><td><span class="badge ${e.status}">${e.status}</span></td><td>${new Date(e.created_at).toLocaleString()}</td></tr>`).join('')
+  }</tbody></table></div>`;
+}
+function openEntryModal(){
+  $('entryCategory').value='';
+  $('entryCandidates').innerHTML='<span class="small">Select a category first.</span>';
+  openModal('entryModal');
+}
+function loadEntryCandidates(){
+  const c=categories.find(x=>x.id===$('entryCategory').value);
+  if(!c){$('entryCandidates').innerHTML='';return}
+  const allowed=registrations.filter(r=>r.status==='approved');
+  $('entryCandidates').innerHTML=allowed.length?allowed.map(r=>`<label class="check"><input type="checkbox" value="${r.id}"> ${escapeHtml(r.full_name)} <span class="small">(${r.gender||'?'})</span></label>`).join(''):'<span class="small">No approved registrations.</span>';
+}
+async function saveEntry(){
+  const categoryId=$('entryCategory').value;
+  const c=categories.find(x=>x.id===categoryId);
+  if(!c){msg('Select a category','error');return}
+  const ids=[...$('entryCandidates').querySelectorAll('input:checked')].map(x=>x.value);
+  const needed=c.event_type==='singles'?1:c.event_type==='doubles'?2:2;
+  if(c.event_type==='singles'&&ids.length!==1){msg('Singles requires exactly 1 member','error');return}
+  if(c.event_type==='doubles'&&ids.length!==2){msg('Doubles requires exactly 2 members','error');return}
+  if(c.event_type==='team'&&ids.length<2){msg('Team requires at least 2 members','error');return}
+  const anchor=ids[0];
+  const existing=entries.find(e=>e.category_id===categoryId && e.tournament_entry_members?.some(m=>m.registration_id===anchor));
+  if(existing){msg('One of these members is already used in an entry for this category','error');return}
+  const {data:entry,error}=await db.from('tournament_entries').insert({
+    tournament_id:currentTournament.id,category_id:categoryId,registration_id:anchor,
+    entry_type:c.event_type==='singles'?'individual':c.event_type==='doubles'?'pair':'team',status:'confirmed'
+  }).select().single();
+  if(error){msg(error.message,'error');return}
+  const members=ids.map((id,i)=>({entry_id:entry.id,registration_id:id,member_order:i+1}));
+  const m=await db.from('tournament_entry_members').insert(members);
+  if(m.error){msg(m.error.message,'error');await db.from('tournament_entries').delete().eq('id',entry.id);return}
+  closeModal('entryModal');msg('Entry created');await loadEntries();
+}
+
+async function prepareDrawPage(){
+  populateCategorySelectors();
+  if($('drawCategory').value) await loadDrawForCategory($('drawCategory').value);
+}
+async function loadDrawForCategory(categoryId){
+  $('drawInfo').innerHTML='';$('bracket').innerHTML='';
+  if(!categoryId)return;
+  const c=categories.find(x=>x.id===categoryId);
+  if(!c)return;
+  const {data:draw}=await db.from('tournament_draws').select('*').eq('category_id',categoryId).maybeSingle();
+  if(!draw){
+    $('drawInfo').innerHTML=`<div class="card notice"><b>${escapeHtml(c.name)}</b> has no draw yet. There are ${entries.filter(e=>e.category_id===categoryId&&e.status==='confirmed').length} confirmed entries.</div>`;
+    return;
+  }
+  $('drawInfo').innerHTML=`<div class="card"><b>${escapeHtml(draw.name)}</b> · ${draw.draw_type} · ${draw.status} · ${draw.total_entries||0} entries · bracket size ${draw.bracket_size||0}</div>`;
+  const {data:rounds}=await db.from('tournament_draw_rounds').select('*').eq('draw_id',draw.id).order('round_no');
+  const {data:matches}=await db.from('tournament_draw_matches').select('*').eq('draw_id',draw.id).order('round_id').order('bracket_position');
+  renderBracket(rounds||[],matches||[]);
+}
+function entryLabel(id){
+  const e=entries.find(x=>x.id===id);return e?entryMemberNames(e):'BYE';
+}
+function renderBracket(rounds,matches){
+  if(!rounds.length){$('bracket').innerHTML='<div class="card empty">No rounds.</div>';return}
+  $('bracket').innerHTML=`<div class="card"><div class="bracket">${rounds.map(r=>{
+    const ms=matches.filter(m=>m.round_id===r.id);
+    return `<div class="round"><h3>${escapeHtml(r.round_name)}</h3>${ms.map(m=>`<div class="match"><div class="${m.winner_entry_id===m.entry_a_id?'winner':''}">${escapeHtml(entryLabel(m.entry_a_id))}</div><div class="${m.winner_entry_id===m.entry_b_id?'winner':''}">${escapeHtml(entryLabel(m.entry_b_id))}</div><div class="small">Match ${m.match_no} · ${m.status}</div></div>`).join('')}</div>`
+  }).join('')}</div></div>`;
+}
+function nextPower2(n){let p=1;while(p<n)p*=2;return p}
+function roundName(roundNo,total){const left=total-roundNo;return left===0?'Final':left===1?'Semifinal':left===2?'Quarterfinal':`Round of ${2**left}`}
+
+async function generateSelectedDraw(){
+  const categoryId=$('drawCategory').value;
+  if(!categoryId){msg('Select a category','error');return}
+  const c=categories.find(x=>x.id===categoryId);
+  if(!c){msg('Category not found','error');return}
+  if(c.format_type!=='knockout'){msg('Phase 2 currently generates knockout draws. League formats will be added next.','error');return}
+  const {data:existing}=await db.from('tournament_draws').select('*').eq('category_id',categoryId).maybeSingle();
+  if(existing){msg('A draw already exists for this category. It is protected from regeneration.','error');await loadDrawForCategory(categoryId);return}
+  const pool=entries.filter(e=>e.category_id===categoryId&&e.status==='confirmed');
+  if(pool.length<2){msg('At least 2 confirmed entries are required','error');return}
+  const size=nextPower2(pool.length);
+  const seeded=[...pool];
+  const {data:draw,error}=await db.from('tournament_draws').insert({
+    tournament_id:currentTournament.id,category_id:categoryId,name:'Main Draw',draw_type:'knockout',
+    total_entries:pool.length,bracket_size:size,status:'draft'
+  }).select().single();
+  if(error){msg(error.message,'error');return}
+  const totalRounds=Math.log2(size);
+  const rounds=[];
+  for(let r=1;r<=totalRounds;r++){
+    const rr=await db.from('tournament_draw_rounds').insert({draw_id:draw.id,round_no:r,round_name:roundName(r,totalRounds),match_count:size/(2**r)}).select().single();
+    if(rr.error){msg(rr.error.message,'error');return}
+    rounds.push(rr.data);
+  }
+  // Simple seed placement: seeds 1..N first, then byes. This is deterministic and easy to verify.
+  const seedRows=seeded.map((e,i)=>({draw_id:draw.id,entry_id:e.id,seed_no:i+1}));
+  const sr=await db.from('tournament_draw_seeds').insert(seedRows);
+  if(sr.error){msg(sr.error.message,'error');return}
+  const firstCount=size/2;
+  const firstRound=[];
+  for(let i=0;i<firstCount;i++){
+    const a=seeded[i*2]?.id||null;
+    const b=seeded[i*2+1]?.id||null;
+    firstRound.push({draw_id:draw.id,round_id:rounds[0].id,match_no:i+1,bracket_position:i+1,entry_a_id:a,entry_b_id:b,status:(a&&b)?'ready':'upcoming'});
+  }
+  let res=await db.from('tournament_draw_matches').insert(firstRound).select();
+  if(res.error){msg(res.error.message,'error');return}
+  let prev=res.data||[];
+  for(let r=1;r<rounds.length;r++){
+    const count=size/(2**(r+1));
+    const rows=[];
+    for(let i=0;i<count;i++){
+      rows.push({draw_id:draw.id,round_id:rounds[r].id,match_no:i+1,bracket_position:i+1,status:'upcoming'});
+    }
+    res=await db.from('tournament_draw_matches').insert(rows).select();
+    if(res.error){msg(res.error.message,'error');return}
+    const next=res.data||[];
+    for(let i=0;i<prev.length;i++){
+      const target=next[Math.floor(i/2)];
+      await db.from('tournament_draw_matches').update({next_match_id:target.id}).eq('id',prev[i].id);
+    }
+    prev=next;
+  }
+  // Auto-advance byes where possible.
+  const firstMatches=(await db.from('tournament_draw_matches').select('*').eq('draw_id',draw.id).eq('round_id',rounds[0].id).order('bracket_position')).data||[];
+  for(const m of firstMatches){
+    if((m.entry_a_id&&!m.entry_b_id)||(m.entry_b_id&&!m.entry_a_id)){
+      const winner=m.entry_a_id||m.entry_b_id;
+      await db.from('tournament_draw_matches').update({winner_entry_id:winner,status:'completed',score_a:0,score_b:0}).eq('id',m.id);
+    }
+  }
+  await db.from('tournament_draws').update({status:'generated',updated_at:new Date().toISOString()}).eq('id',draw.id);
+  msg('Knockout draw generated successfully');
+  await loadDrawForCategory(categoryId);
+}
+init();
+</script>
+</body>
+</html>
