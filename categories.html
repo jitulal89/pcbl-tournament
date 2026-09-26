@@ -1,5 +1,5 @@
 <!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Tournament Dashboard</title><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="admin-common.js"></script>
+<title>Categories</title><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="admin-common.js"></script>
 <style>
 :root{--bg:#f4f7fb;--card:#fff;--text:#172033;--muted:#667085;--line:#e5e7eb;--primary:#2563eb;--dark:#111827}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial}
@@ -21,27 +21,17 @@ main{flex:1;padding:20px;min-width:0}.title h1{margin:0 0 4px;font-size:30px}.mu
 @media(max-width:550px){.grid{grid-template-columns:1fr}.players{grid-template-columns:1fr}.form{grid-template-columns:1fr}.topactions .email{display:none}}
 </style></head><body>
 <header><div class="headbar"><div class="brand">🏸 Badminton Admin</div><div class="topactions"><span id="userEmail" class="email muted"></span><button class="light" onclick="publicView()">🌐 Public</button><button class="light" onclick="signOut()">↪ Sign out</button></div></div></header>
-<div class="layout"><aside><div id="nav" class="nav"></div></aside><main><div id="msg"></div><div class="title"><h1 id="tournamentName">Tournament Dashboard</h1><div class="muted">Badminton Tournament Management</div></div><br>
-<div class="card"><label>Current Tournament</label><div id="current"></div></div>
-<div class="grid">
-<div class="card stat">Categories<b id="c">0</b></div><div class="card stat">Approved Players<b id="p">0</b></div>
-<div class="card stat">Entries<b id="e">0</b></div><div class="card stat">Matches<b id="m">0</b></div>
-</div>
-<div class="card"><h3>Admin Modules</h3><div class="toolbar">
-<a class="btn light" href="#" onclick="go('settings.html');return false">⚙️ Settings</a>
-<a class="btn light" href="#" onclick="go('categories.html');return false">📂 Categories</a>
-<a class="btn light" href="#" onclick="go('players.html');return false">👤 Players</a>
-<a class="btn light" href="#" onclick="go('registrations.html');return false">📝 Registrations</a>
-<a class="btn light" href="#" onclick="go('entries.html');return false">🎯 Entries</a>
-<a class="btn light" href="#" onclick="go('draws.html');return false">🏆 Draws</a>
-<a class="btn light" href="#" onclick="go('fixtures.html');return false">📅 Fixtures</a>
-<a class="btn light" href="#" onclick="go('results.html');return false">🏸 Results</a>
-<a class="btn light" href="#" onclick="go('player-history.html');return false">📈 Player History</a>
-</div></div>
-</main></div>
+<div class="layout"><aside><div id="nav" class="nav"></div></aside><main><div id="msg"></div><div class="title"><h1 id="tournamentName">Categories</h1><div class="muted">Badminton Tournament Management</div></div><br><div class="toolbar"><button class="btn primary" onclick="add()">+ Category</button></div><div id="table"></div>
+<div id="modal" class="modal"><div class="modalbox"><h2 id="mt">Category</h2><div class="form">
+<div class="full"><label>Name</label><input id="n"></div><div><label>Event Type</label><select id="et"><option>singles</option><option>doubles</option><option>team</option></select></div>
+<div><label>Format</label><select id="ft"><option>knockout</option><option>league</option><option>league_finals</option></select></div><div><label>Gender Rule</label><select id="gr"><option>open</option><option>male</option><option>female</option><option>mixed</option></select></div>
+<div><label>Display Order</label><input id="ord" type="number"></div><div><label>Maximum Entries</label><input id="max" type="number"></div><div><label>Status</label><select id="st"><option>draft</option><option>open</option><option>closed</option></select></div></div><br><button class="btn primary" onclick="save()">Save</button> <button class="btn light" onclick="closeM()">Cancel</button></div></div></main></div>
 <script>
-(async()=>{if(!(await requireSession()))return;if(!(await loadTournament()))return;setupHeader('dashboard');await loadData();
-$('tournamentName').textContent=tournament.name;$('current').textContent=[tournament.venue,tournament.start_date,tournament.end_date].filter(Boolean).join(' · ');
-$('c').textContent=categories.length;$('p').textContent=registrations.filter(x=>x.status==='approved').length;$('e').textContent=entries.length;$('m').textContent=matches.length;
-const s=await db.auth.getSession();$('userEmail').textContent=s.data.session?.user?.email||'';})();
+let edit=null;
+(async()=>{if(!(await requireSession()))return;if(!(await loadTournament()))return;setupHeader('categories');await loadData();render()})();
+function render(){$('table').innerHTML=`<div class="tablewrap"><table class="table"><tr><th>Order</th><th>Category</th><th>Event</th><th>Format</th><th>Gender</th><th>Max</th><th>Status</th><th></th></tr>${categories.map(c=>`<tr><td>${c.display_order}</td><td><b>${esc(c.name)}</b></td><td>${esc(c.event_type)}</td><td>${esc(c.format_type)}</td><td>${esc(c.gender_rule)}</td><td>${c.max_entries??'—'}</td><td><span class="badge">${esc(c.status)}</span></td><td><button class="btn light" onclick="editCat('${c.id}')">Edit</button></td></tr>`).join('')}</table></div>`}
+function add(){edit=null;$('mt').textContent='Add Category';$('n').value='';$('ord').value=categories.length+1;$('max').value='';$('st').value='draft';$('modal').classList.add('open')}
+function editCat(id){edit=categories.find(x=>x.id===id);$('mt').textContent='Edit Category';$('n').value=edit.name;$('et').value=edit.event_type;$('ft').value=edit.format_type;$('gr').value=edit.gender_rule;$('ord').value=edit.display_order;$('max').value=edit.max_entries??'';$('st').value=edit.status;$('modal').classList.add('open')}
+function closeM(){$('modal').classList.remove('open')}
+async function save(){let p={tournament_id:tournament.id,name:$('n').value.trim(),event_type:$('et').value,format_type:$('ft').value,gender_rule:$('gr').value,display_order:+$('ord').value,max_entries:$('max').value?+$('max').value:null,status:$('st').value};let r=edit?await db.from('tournament_categories').update(p).eq('id',edit.id):await db.from('tournament_categories').insert(p);if(r.error)return notice(r.error.message,true);closeM();await loadData();render()}
 </script></body></html>

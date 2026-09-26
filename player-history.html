@@ -1,5 +1,5 @@
 <!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Tournament Dashboard</title><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="admin-common.js"></script>
+<title>Player Match History</title><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="admin-common.js"></script>
 <style>
 :root{--bg:#f4f7fb;--card:#fff;--text:#172033;--muted:#667085;--line:#e5e7eb;--primary:#2563eb;--dark:#111827}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial}
@@ -21,27 +21,8 @@ main{flex:1;padding:20px;min-width:0}.title h1{margin:0 0 4px;font-size:30px}.mu
 @media(max-width:550px){.grid{grid-template-columns:1fr}.players{grid-template-columns:1fr}.form{grid-template-columns:1fr}.topactions .email{display:none}}
 </style></head><body>
 <header><div class="headbar"><div class="brand">🏸 Badminton Admin</div><div class="topactions"><span id="userEmail" class="email muted"></span><button class="light" onclick="publicView()">🌐 Public</button><button class="light" onclick="signOut()">↪ Sign out</button></div></div></header>
-<div class="layout"><aside><div id="nav" class="nav"></div></aside><main><div id="msg"></div><div class="title"><h1 id="tournamentName">Tournament Dashboard</h1><div class="muted">Badminton Tournament Management</div></div><br>
-<div class="card"><label>Current Tournament</label><div id="current"></div></div>
-<div class="grid">
-<div class="card stat">Categories<b id="c">0</b></div><div class="card stat">Approved Players<b id="p">0</b></div>
-<div class="card stat">Entries<b id="e">0</b></div><div class="card stat">Matches<b id="m">0</b></div>
-</div>
-<div class="card"><h3>Admin Modules</h3><div class="toolbar">
-<a class="btn light" href="#" onclick="go('settings.html');return false">⚙️ Settings</a>
-<a class="btn light" href="#" onclick="go('categories.html');return false">📂 Categories</a>
-<a class="btn light" href="#" onclick="go('players.html');return false">👤 Players</a>
-<a class="btn light" href="#" onclick="go('registrations.html');return false">📝 Registrations</a>
-<a class="btn light" href="#" onclick="go('entries.html');return false">🎯 Entries</a>
-<a class="btn light" href="#" onclick="go('draws.html');return false">🏆 Draws</a>
-<a class="btn light" href="#" onclick="go('fixtures.html');return false">📅 Fixtures</a>
-<a class="btn light" href="#" onclick="go('results.html');return false">🏸 Results</a>
-<a class="btn light" href="#" onclick="go('player-history.html');return false">📈 Player History</a>
-</div></div>
-</main></div>
+<div class="layout"><aside><div id="nav" class="nav"></div></aside><main><div id="msg"></div><div class="title"><h1 id="tournamentName">Player Match History</h1><div class="muted">Badminton Tournament Management</div></div><br><div class="toolbar"><input id="q" placeholder="Search player..." oninput="render()"><select id="cat" onchange="render()"><option value="">All events</option></select></div><div id="table"></div></main></div>
 <script>
-(async()=>{if(!(await requireSession()))return;if(!(await loadTournament()))return;setupHeader('dashboard');await loadData();
-$('tournamentName').textContent=tournament.name;$('current').textContent=[tournament.venue,tournament.start_date,tournament.end_date].filter(Boolean).join(' · ');
-$('c').textContent=categories.length;$('p').textContent=registrations.filter(x=>x.status==='approved').length;$('e').textContent=entries.length;$('m').textContent=matches.length;
-const s=await db.auth.getSession();$('userEmail').textContent=s.data.session?.user?.email||'';})();
+(async()=>{if(!(await requireSession()))return;if(!(await loadTournament()))return;setupHeader('history');await loadData();$('cat').innerHTML='<option value="">All events</option>'+categories.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');render()})();
+function render(){let q=($('q').value||'').toLowerCase(),cid=$('cat').value,rows=[];for(const p of registrations.filter(x=>x.status==='approved'&&(!q||x.full_name.toLowerCase().includes(q)))){let pes=entries.filter(e=>entryMembers(e).some(x=>x.id===p.id)&&(!cid||e.category_id===cid)),ids=new Set(pes.map(e=>e.id)),ms=matches.filter(m=>ids.has(m.entry_a_id)||ids.has(m.entry_b_id));for(const m of ms){let my=ids.has(m.entry_a_id)?m.entry_a_id:m.entry_b_id,opp=my===m.entry_a_id?entryName(m.entry_b_id):entryName(m.entry_a_id);rows.push({p,m,opp,my})}}$('table').innerHTML=`<div class="tablewrap"><table class="table"><tr><th>Player</th><th>Event</th><th>Match</th><th>Opponent / Pair</th><th>Score</th><th>Status</th><th>Result</th></tr>${rows.map(x=>`<tr><td>${esc(x.p.full_name)}</td><td>${esc(catName(draws.find(d=>d.id===x.m.draw_id)?.category_id))}</td><td>${x.m.match_no}</td><td>${esc(x.opp)}</td><td>${x.m.status==='completed'?x.m.score_a+' - '+x.m.score_b:'—'}</td><td>${x.m.status}</td><td>${x.m.status!=='completed'?'—':x.m.winner_entry_id===x.my?'Won':'Lost'}</td></tr>`).join('')}</table></div>`}
 </script></body></html>

@@ -1,30 +1,28 @@
-BADMINTON TOURNAMENT PLATFORM - CURRENT PACKAGE
+BADMINTON TOURNAMENT PLATFORM - FINAL STRUCTURE
 
-FILES
------
-admin.html
-  Admin dashboard with labelled navigation:
-  Dashboard, Players, Categories, Registrations, Entries, Draw & Results.
-  Includes player profiles and match history.
+ADMIN FILES
+-----------
+admin.html              Dashboard
+settings.html           Tournament settings
+categories.html         Categories
+players.html            Players
+registrations.html      Registrations
+entries.html            Entries
+draws.html              Draws
+fixtures.html           Fixtures
+results.html            Match results
+player-history.html     Player match history
+admin-common.js         Shared admin database/navigation logic
 
-tournament.html
-  Public tournament page with Events, Players, Matches, Draws and Admin link.
-
-registration.html
-  Public player registration form.
-
-DEPLOYMENT
-----------
-Keep all three HTML files in the same GitHub Pages folder.
+PUBLIC FILES
+------------
+tournament.html         Public tournament
+registration.html       Public registration
 
 IMPORTANT
 ---------
-Open admin.html for the admin portal.
-Open tournament.html for the public tournament page.
-Open registration.html for player registration.
+All files must be uploaded to the SAME GitHub Pages folder.
+The admin pages link to one another and preserve the selected tournament
+using the tournament query parameter.
 
-The admin sign-out now returns to the public tournament page for the
-currently selected tournament. It does not route to the old
-tournament-manager.html page.
-
-PCBL 2026 and cricket functionality remain separate.
+PCBL 2026 and cricket functionality are kept separate.

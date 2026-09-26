@@ -1,5 +1,5 @@
 <!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Tournament Dashboard</title><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="admin-common.js"></script>
+<title>Entries</title><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="admin-common.js"></script>
 <style>
 :root{--bg:#f4f7fb;--card:#fff;--text:#172033;--muted:#667085;--line:#e5e7eb;--primary:#2563eb;--dark:#111827}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial}
@@ -21,27 +21,12 @@ main{flex:1;padding:20px;min-width:0}.title h1{margin:0 0 4px;font-size:30px}.mu
 @media(max-width:550px){.grid{grid-template-columns:1fr}.players{grid-template-columns:1fr}.form{grid-template-columns:1fr}.topactions .email{display:none}}
 </style></head><body>
 <header><div class="headbar"><div class="brand">🏸 Badminton Admin</div><div class="topactions"><span id="userEmail" class="email muted"></span><button class="light" onclick="publicView()">🌐 Public</button><button class="light" onclick="signOut()">↪ Sign out</button></div></div></header>
-<div class="layout"><aside><div id="nav" class="nav"></div></aside><main><div id="msg"></div><div class="title"><h1 id="tournamentName">Tournament Dashboard</h1><div class="muted">Badminton Tournament Management</div></div><br>
-<div class="card"><label>Current Tournament</label><div id="current"></div></div>
-<div class="grid">
-<div class="card stat">Categories<b id="c">0</b></div><div class="card stat">Approved Players<b id="p">0</b></div>
-<div class="card stat">Entries<b id="e">0</b></div><div class="card stat">Matches<b id="m">0</b></div>
-</div>
-<div class="card"><h3>Admin Modules</h3><div class="toolbar">
-<a class="btn light" href="#" onclick="go('settings.html');return false">⚙️ Settings</a>
-<a class="btn light" href="#" onclick="go('categories.html');return false">📂 Categories</a>
-<a class="btn light" href="#" onclick="go('players.html');return false">👤 Players</a>
-<a class="btn light" href="#" onclick="go('registrations.html');return false">📝 Registrations</a>
-<a class="btn light" href="#" onclick="go('entries.html');return false">🎯 Entries</a>
-<a class="btn light" href="#" onclick="go('draws.html');return false">🏆 Draws</a>
-<a class="btn light" href="#" onclick="go('fixtures.html');return false">📅 Fixtures</a>
-<a class="btn light" href="#" onclick="go('results.html');return false">🏸 Results</a>
-<a class="btn light" href="#" onclick="go('player-history.html');return false">📈 Player History</a>
-</div></div>
-</main></div>
+<div class="layout"><aside><div id="nav" class="nav"></div></aside><main><div id="msg"></div><div class="title"><h1 id="tournamentName">Entries</h1><div class="muted">Badminton Tournament Management</div></div><br><div class="toolbar"><button class="btn primary" onclick="add()">+ Entry</button></div><div id="table"></div>
+<div id="modal" class="modal"><div class="modalbox"><h2>Create Entry</h2><label>Category</label><select id="cat"></select><br><br><label>Approved Players</label><div id="players"></div><br><button class="btn primary" onclick="save()">Create</button> <button class="btn light" onclick="closeM()">Cancel</button></div></div></main></div>
 <script>
-(async()=>{if(!(await requireSession()))return;if(!(await loadTournament()))return;setupHeader('dashboard');await loadData();
-$('tournamentName').textContent=tournament.name;$('current').textContent=[tournament.venue,tournament.start_date,tournament.end_date].filter(Boolean).join(' · ');
-$('c').textContent=categories.length;$('p').textContent=registrations.filter(x=>x.status==='approved').length;$('e').textContent=entries.length;$('m').textContent=matches.length;
-const s=await db.auth.getSession();$('userEmail').textContent=s.data.session?.user?.email||'';})();
+(async()=>{if(!(await requireSession()))return;if(!(await loadTournament()))return;setupHeader('entries');await loadData();render()})();
+function render(){$('table').innerHTML=`<div class="tablewrap"><table class="table"><tr><th>Category</th><th>Entry</th><th>Type</th><th>Status</th></tr>${entries.map(e=>`<tr><td>${esc(catName(e.category_id))}</td><td><b>${esc(entryName(e.id))}</b></td><td>${esc(e.entry_type)}</td><td><span class="badge ${e.status}">${esc(e.status)}</span></td></tr>`).join('')}</table></div>`}
+function add(){$('cat').innerHTML=categories.map(c=>`<option value="${c.id}">${esc(c.name)} — ${c.event_type}</option>`).join('');$('players').innerHTML=registrations.filter(r=>r.status==='approved').map(r=>`<label style="margin:5px 0"><input style="width:auto" type="checkbox" value="${r.id}"> ${esc(r.full_name)}</label>`).join('');$('modal').classList.add('open')}
+function closeM(){$('modal').classList.remove('open')}
+async function save(){let c=categories.find(x=>x.id===$('cat').value),ids=[...$('players').querySelectorAll('input:checked')].map(x=>x.value),need=c.event_type==='singles'?1:c.event_type==='doubles'?2:2;if(c.event_type!=='team'&&ids.length!==need)return notice(c.event_type==='singles'?'Select 1 player.':'Select 2 players.',true);if(c.event_type==='team'&&ids.length<2)return notice('Select at least 2 players.',true);let r=await db.from('tournament_entries').insert({tournament_id:tournament.id,category_id:c.id,registration_id:ids[0],entry_type:c.event_type==='singles'?'individual':c.event_type==='doubles'?'pair':'team',status:'confirmed'}).select().single();if(r.error)return notice(r.error.message,true);let x=await db.from('tournament_entry_members').insert(ids.map((id,i)=>({entry_id:r.data.id,registration_id:id,member_order:i+1})));if(x.error)return notice(x.error.message,true);closeM();await loadData();render()}
 </script></body></html>
