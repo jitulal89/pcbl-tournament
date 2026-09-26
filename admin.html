@@ -20,9 +20,20 @@ main{flex:1;padding:20px;min-width:0}.title h1{margin:0 0 4px;font-size:30px}.mu
 @media(max-width:900px){.layout{display:block}aside{width:100%;border-right:0;border-bottom:1px solid var(--line);position:sticky;top:58px;z-index:20}.nav{flex-direction:row;overflow-x:auto}.nav a{white-space:nowrap;min-width:max-content}.grid{grid-template-columns:1fr 1fr}.players{grid-template-columns:1fr 1fr}main{padding:12px}}
 @media(max-width:550px){.grid{grid-template-columns:1fr}.players{grid-template-columns:1fr}.form{grid-template-columns:1fr}.topactions .email{display:none}}
 </style></head><body>
-<header><div class="headbar"><div class="brand">🏸 Badminton Admin</div><div class="topactions"><span id="userEmail" class="email muted"></span><button class="light" onclick="publicView()">🌐 Public</button><button class="light" onclick="signOut()">↪ Sign out</button></div></div></header>
+<header><div class="headbar"><div class="brand">🏸 Badminton Admin</div><div class="topactions"><span id="userEmail" class="email muted"></span><button id="publicBtn" class="light" onclick="publicView()" style="display:none">🌐 Public</button><button id="signOutBtn" class="light" onclick="signOut()" style="display:none">↪ Sign out</button></div></div></header>
+<div id="loginView" style="max-width:460px;margin:70px auto;padding:20px">
+  <div class="card">
+    <h1 style="margin-top:0">Admin Login</h1>
+    <div class="muted" style="margin-bottom:15px">Sign in to manage your badminton tournaments.</div>
+    <div id="loginMsg"></div>
+    <label>Email</label><input id="loginEmail" type="email" autocomplete="email" placeholder="admin@example.com">
+    <label>Password</label><input id="loginPassword" type="password" autocomplete="current-password" placeholder="Password">
+    <button class="primary" style="width:100%;margin-top:5px" onclick="doLogin()">Sign in</button>
+  </div>
+</div>
+<div id="adminView" style="display:none">
 <div class="layout"><aside><div id="nav" class="nav"></div></aside><main><div id="msg"></div><div class="title"><h1 id="tournamentName">Tournament Dashboard</h1><div class="muted">Badminton Tournament Management</div></div><br>
-<div class="card"><label>Current Tournament</label><div id="current"></div></div>
+<div class="card"><label>Current Tournament</label><select id="tournamentSelect" onchange="changeTournament(this.value)"></select><div id="current" class="muted" style="margin-top:8px"></div></div>
 <div class="grid">
 <div class="card stat">Categories<b id="c">0</b></div><div class="card stat">Approved Players<b id="p">0</b></div>
 <div class="card stat">Entries<b id="e">0</b></div><div class="card stat">Matches<b id="m">0</b></div>
@@ -38,10 +49,57 @@ main{flex:1;padding:20px;min-width:0}.title h1{margin:0 0 4px;font-size:30px}.mu
 <a class="btn light" href="#" onclick="go('results.html');return false">🏸 Results</a>
 <a class="btn light" href="#" onclick="go('player-history.html');return false">📈 Player History</a>
 </div></div>
-</main></div>
+</main></div></div>
 <script>
-(async()=>{if(!(await requireSession()))return;if(!(await loadTournament()))return;setupHeader('dashboard');await loadData();
-$('tournamentName').textContent=tournament.name;$('current').textContent=[tournament.venue,tournament.start_date,tournament.end_date].filter(Boolean).join(' · ');
-$('c').textContent=categories.length;$('p').textContent=registrations.filter(x=>x.status==='approved').length;$('e').textContent=entries.length;$('m').textContent=matches.length;
-const s=await db.auth.getSession();$('userEmail').textContent=s.data.session?.user?.email||'';})();
+async function showLogin(message='') {
+  $('loginView').style.display='block';
+  $('adminView').style.display='none';
+  $('publicBtn').style.display='none'; $('signOutBtn').style.display='none'; $('userEmail').textContent='';
+  if(message) $('loginMsg').innerHTML='<div class="notice error">'+esc(message)+'</div>';
+}
+async function doLogin(){
+  const email=$('loginEmail').value.trim(), password=$('loginPassword').value;
+  $('loginMsg').innerHTML='';
+  if(!email || !password){$('loginMsg').innerHTML='<div class="notice error">Enter email and password.</div>';return;}
+  const {error}=await db.auth.signInWithPassword({email,password});
+  if(error){$('loginMsg').innerHTML='<div class="notice error">'+esc(error.message)+'</div>';return;}
+  await startAdmin();
+}
+async function loadTournamentOptions(){
+  const {data,error}=await db.from('tournaments').select('*').order('created_at',{ascending:false});
+  if(error) return {data:[],error};
+  return {data:data||[],error:null};
+}
+function changeTournament(id){
+  if(!id)return;
+  localStorage.setItem('badminton_admin_tournament',id);
+  location.href='admin.html?tournament='+encodeURIComponent(id);
+}
+async function startAdmin(){
+  const session=await db.auth.getSession();
+  if(!session.data.session){await showLogin();return;}
+  const t=await loadTournamentOptions();
+  if(t.error){await showLogin(t.error.message);return;}
+  if(!t.data.length){await showLogin('No tournaments are available to this account. Check the tournament access/RLS setup.');return;}
+  let id=tid();
+  if(!id || !t.data.some(x=>x.id===id)) id=localStorage.getItem('badminton_admin_tournament');
+  if(!id || !t.data.some(x=>x.id===id)) id=t.data[0].id;
+  localStorage.setItem('badminton_admin_tournament',id);
+  if(location.search !== '?tournament='+encodeURIComponent(id)) {
+    history.replaceState(null,'','admin.html?tournament='+encodeURIComponent(id));
+  }
+  tournament=t.data.find(x=>x.id===id);
+  $('loginView').style.display='none'; $('adminView').style.display='block';
+  $('publicBtn').style.display='inline-block'; $('signOutBtn').style.display='inline-block';
+  const s=await db.auth.getSession(); $('userEmail').textContent=s.data.session?.user?.email||'';
+  const sel=$('tournamentSelect'); sel.innerHTML=t.data.map(x=>`<option value="${esc(x.id)}">${esc(x.name)}</option>`).join(''); sel.value=id;
+  setupHeader('dashboard');
+  const ok=await loadData();
+  $('tournamentName').textContent=tournament.name;
+  $('current').textContent=[tournament.venue,tournament.start_date,tournament.end_date].filter(Boolean).join(' · ');
+  $('c').textContent=categories.length; $('p').textContent=registrations.filter(x=>x.status==='approved').length; $('e').textContent=entries.length; $('m').textContent=matches.length;
+  if(!ok) notice('Some tournament data could not be loaded. Check the error above.',true);
+}
+async function signOut(){await db.auth.signOut();localStorage.removeItem('badminton_admin_tournament');await showLogin();}
+(async()=>{await startAdmin();})();
 </script></body></html>
