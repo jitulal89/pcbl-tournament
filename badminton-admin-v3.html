@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Badminton Tournament Admin V3</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--bg:#f4f7fb;--card:#fff;--text:#172033;--muted:#6b7280;--line:#e5e7eb;--primary:#2563eb;--green:#15803d;--red:#dc2626;--amber:#b45309}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial}
+button,input,select,textarea{font:inherit}button{cursor:pointer}
+.top{background:#111827;color:#fff;padding:13px 18px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:20}.brand{font-weight:800}.small{font-size:12px;color:var(--muted)}
+.app{display:flex;min-height:calc(100vh - 56px)}aside{width:235px;background:#fff;border-right:1px solid var(--line);padding:12px;flex-shrink:0}.nav button{width:100%;border:0;background:none;text-align:left;padding:11px;border-radius:8px;font-weight:700;color:#374151}.nav button.active,.nav button:hover{background:#eff6ff;color:#1d4ed8}
+main{flex:1;padding:20px;max-width:1550px}.page{display:none}.page.active{display:block}.head{display:flex;justify-content:space-between;gap:12px;margin-bottom:15px}.head h1{margin:0 0 5px}.sub{color:var(--muted);font-size:13px}
+.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:0 7px 25px rgba(15,23,42,.06);margin-bottom:15px}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.stat b{font-size:28px}.btn{border:0;border-radius:8px;padding:9px 13px;font-weight:800}.primary{background:var(--primary);color:#fff}.light{background:#fff;border:1px solid #d1d5db}.success{background:#dcfce7;color:#166534}.danger{background:#fee2e2;color:#991b1b}.amber{background:#fef3c7;color:#92400e}
+input,select,textarea{width:100%;padding:9px;border:1px solid #d1d5db;border-radius:8px;background:#fff}label{display:block;font-size:12px;font-weight:800;margin-bottom:5px}.form{display:grid;grid-template-columns:1fr 1fr;gap:12px}.full{grid-column:1/-1}
+.tablewrap{overflow:auto;border:1px solid var(--line);border-radius:10px}.table{border-collapse:collapse;width:100%;min-width:850px}.table th,.table td{padding:10px;border-bottom:1px solid var(--line);text-align:left;font-size:13px}.table th{background:#f8fafc;color:#6b7280;font-size:11px}
+.badge{padding:4px 8px;border-radius:999px;font-size:11px;font-weight:800;background:#e5e7eb}.open,.approved,.confirmed,.generated,.ready,.completed{background:#dcfce7;color:#166534}.pending{background:#fef3c7;color:#92400e}.rejected{background:#fee2e2;color:#991b1b}.upcoming{background:#e5e7eb;color:#374151}
+.notice{padding:11px;border-radius:9px;background:#eff6ff;color:#1e40af;font-size:13px}.error{background:#fef2f2;color:#991b1b}
+.bracket{display:flex;gap:25px;overflow:auto;padding:8px}.round{min-width:235px}.round h3{text-align:center;color:#6b7280;font-size:13px}.match{border:1px solid #dbe1ea;border-radius:9px;margin:14px 0;overflow:hidden;background:#fff}.match .player{padding:9px;min-height:38px}.match .player+.player{border-top:1px solid #edf0f4}.winner{font-weight:800;background:#f0fdf4}.match-foot{padding:7px 9px;background:#f8fafc;font-size:11px;color:#6b7280;display:flex;justify-content:space-between;gap:5px}.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.modal{position:fixed;inset:0;background:#0008;display:none;align-items:center;justify-content:center;padding:15px;z-index:30}.modal.open{display:flex}.modalbox{background:#fff;border-radius:14px;padding:20px;width:min(650px,100%);max-height:90vh;overflow:auto}.checks{display:flex;flex-wrap:wrap;gap:7px}.check{border:1px solid #d1d5db;border-radius:8px;padding:8px}.check input{width:auto}.scoregrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.playerbox{padding:12px;border:1px solid var(--line);border-radius:10px}.playerbox h3{margin:0 0 8px}
+@media(max-width:850px){aside{width:62px}.nav button{font-size:0;text-align:center}.grid{grid-template-columns:1fr 1fr}.form{grid-template-columns:1fr}main{padding:12px}}@media(max-width:550px){.grid{grid-template-columns:1fr}.head{flex-direction:column}.top .small{display:none}.scoregrid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">🏸 Badminton Tournament Admin V3</div>
+  <div><span id="email" class="small" style="color:#d1d5db"></span> <button class="btn light" onclick="logout()">Sign out</button></div>
+</header>
+<div class="app">
+<aside><div class="nav">
+<button class="active" data-p="dashboard">📊 Dashboard</button>
+<button data-p="categories">📂 Categories</button>
+<button data-p="registrations">👥 Registrations</button>
+<button data-p="entries">🎯 Entries</button>
+<button data-p="draw">🏆 Draw & Results</button>
+</div></aside>
+<main>
+<div id="msg"></div>
+
+<section id="dashboard" class="page active">
+<div class="head"><div><h1 id="title">Tournament</h1><div class="sub">Manage badminton registration, entries, draws and results.</div></div></div>
+<div class="card"><label>Active Tournament</label><select id="tournament" onchange="choose(this.value)"></select></div>
+<div class="grid">
+<div class="card stat">Categories<br><b id="sCat">0</b></div>
+<div class="card stat">Registrations<br><b id="sReg">0</b></div>
+<div class="card stat">Approved<br><b id="sApp">0</b></div>
+<div class="card stat">Entries<br><b id="sEnt">0</b></div>
+</div>
+<div class="card">
+<h3>Registration Settings</h3>
+<div class="form">
+<div><label>Status</label><select id="regOpen"><option value="false">Closed</option><option value="true">Open</option></select></div>
+<div><label>Tournament Logo URL</label><input id="logo"></div>
+<div><label>Require phone</label><select id="phone"><option value="true">Yes</option><option value="false">No</option></select></div>
+<div><label>Require email</label><select id="emailReq"><option value="false">No</option><option value="true">Yes</option></select></div>
+<div><label>Require date of birth</label><select id="dobReq"><option value="false">No</option><option value="true">Yes</option></select></div>
+<div class="full"><label>Instructions</label><textarea id="instructions"></textarea></div>
+</div><br><button class="btn primary" onclick="saveSettings()">Save Registration Settings</button>
+<div id="regLink" class="notice" style="margin-top:10px"></div>
+</div>
+</section>
+
+<section id="categories" class="page">
+<div class="head"><div><h1>Categories</h1><div class="sub">Configure badminton singles, doubles, mixed and team events.</div></div><button class="btn primary" onclick="catModal()">+ Category</button></div>
+<div id="catTable"></div>
+</section>
+
+<section id="registrations" class="page">
+<div class="head"><div><h1>Registrations</h1><div class="sub">Approve or reject public registrations.</div></div><button class="btn light" onclick="loadAll()">↻ Refresh</button></div>
+<div class="toolbar"><input id="regSearch" placeholder="Search player, phone or email..." oninput="renderRegs()" style="max-width:350px"><select id="regFilter" onchange="renderRegs()" style="max-width:180px"><option value="">All statuses</option><option value="pending">Pending</option><option value="approved">Approved</option><option value="rejected">Rejected</option><option value="withdrawn">Withdrawn</option></select></div>
+<div id="regTable"></div>
+</section>
+
+<section id="entries" class="page">
+<div class="head"><div><h1>Entries</h1><div class="sub">Create singles, doubles and team entries from approved registrations.</div></div><button class="btn primary" onclick="entryModal()">+ Entry</button></div>
+<div id="entryTable"></div>
+</section>
+
+<section id="draw" class="page">
+<div class="head"><div><h1>Draw & Results</h1><div class="sub">Generate knockout brackets and record match results.</div></div></div>
+<div class="card">
+<label>Category</label><select id="drawCat" onchange="showDraw(this.value)"></select>
+<br><br>
+<button class="btn primary" onclick="generateDraw()">Generate Knockout Draw</button>
+<button class="btn light" onclick="showDraw($('drawCat').value)">↻ Refresh</button>
+</div>
+<div id="drawInfo"></div>
+<div id="bracket"></div>
+</section>
+</main></div>
+
+<div id="modal" class="modal"><div class="modalbox"><div style="display:flex;justify-content:space-between"><h2 id="modalTitle"></h2><button class="btn light" onclick="closeModal()">✕</button></div><div id="modalBody"></div></div></div>
+
+<script>
+const U='https://bfalondvpfijthberomf.supabase.co',K='sb_publishable_kiyREqgce0B0-IZ8jOUkdQ_w8pas2ae',db=supabase.createClient(U,K);
+let me,tournaments=[],t,cats=[],regs=[],entries=[];
+const $=x=>document.getElementById(x);
+const esc=x=>String(x??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+function notice(x,error=false){$('msg').innerHTML=x?`<div class="card notice ${error?'error':''}">${esc(x)}</div>`:'';if(x)setTimeout(()=>{$('msg').innerHTML=''},4500)}
+document.querySelectorAll('.nav button').forEach(b=>b.onclick=async()=>{document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));$(b.dataset.p).classList.add('active');if(b.dataset.p==='draw')await loadDrawSelectors()});
+
+async function init(){
+ const r=await db.auth.getSession(); me=r.data.session;
+ if(!me){notice('Please sign in using your existing Supabase admin account.','error');return}
+ $('email').textContent=me.user.email||'';
+ await loadTournaments();
+}
+async function logout(){await db.auth.signOut();location.href='tournament-manager.html'}
+async function loadTournaments(){
+ const r=await db.from('tournaments').select('*').order('created_at',{ascending:false});
+ if(r.error)return notice(r.error.message,true);
+ tournaments=r.data||[];$('tournament').innerHTML=tournaments.map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('');
+ let saved=localStorage.getItem('badminton_admin_tournament');
+ let id=tournaments.find(x=>x.id===saved)?.id||tournaments[0]?.id;
+ if(id){$('tournament').value=id;await choose(id)}
+}
+async function choose(id){
+ t=tournaments.find(x=>x.id===id);if(!t)return;
+ localStorage.setItem('badminton_admin_tournament',id);$('title').textContent=t.name;
+ await loadAll();await loadSettings();
+}
+async function loadAll(){
+ if(!t)return;
+ const [a,b,c]=await Promise.all([
+  db.from('tournament_categories').select('*').eq('tournament_id',t.id).order('display_order'),
+  db.from('tournament_registrations').select('*').eq('tournament_id',t.id).order('submitted_at',{ascending:false}),
+  db.from('tournament_entries').select('*,tournament_entry_members(id,registration_id,member_order)').eq('tournament_id',t.id)
+ ]);
+ const er=a.error||b.error||c.error;if(er)return notice(er.message,true);
+ cats=a.data||[];regs=b.data||[];entries=c.data||[];stats();renderCats();renderRegs();renderEntries();await loadDrawSelectors();
+}
+function stats(){$('sCat').textContent=cats.length;$('sReg').textContent=regs.length;$('sApp').textContent=regs.filter(x=>x.status==='approved').length;$('sEnt').textContent=entries.length}
+async function loadSettings(){
+ const r=await db.from('registration_forms').select('*').eq('tournament_id',t.id).maybeSingle();
+ if(r.error)return notice(r.error.message,true);
+ if(r.data){$('regOpen').value=String(r.data.public_enabled);$('phone').value=String(r.data.require_phone);$('emailReq').value=String(r.data.require_email);$('dobReq').value=String(r.data.require_date_of_birth);$('instructions').value=r.data.instructions||''}
+ $('logo').value=t.logo_url||'';link();
+}
+function link(){$('regLink').innerHTML=`Public registration page: <a href="${location.origin+location.pathname.replace(/[^/]+$/,'badminton-registration.html')}?tournament=${t?.id||''}" target="_blank">Open registration</a>`}
+async function saveSettings(){
+ let r=await db.from('tournaments').update({logo_url:$('logo').value.trim()||null}).eq('id',t.id);
+ if(r.error)return notice(r.error.message,true);
+ r=await db.from('registration_forms').upsert({tournament_id:t.id,public_enabled:$('regOpen').value==='true',require_phone:$('phone').value==='true',require_email:$('emailReq').value==='true',require_date_of_birth:$('dobReq').value==='true',instructions:$('instructions').value},{onConflict:'tournament_id'});
+ if(r.error)return notice(r.error.message,true);notice('Registration settings saved.');link();
+}
+
+let editCat=null;
+function catModal(id=null){
+ editCat=id;let c=id?cats.find(x=>x.id===id):{};
+ $('modalTitle').textContent=id?'Edit Category':'Add Category';
+ $('modalBody').innerHTML=`<div class="form">
+ <div class="full"><label>Name *</label><input id="cn" value="${esc(c.name||'')}"></div>
+ <div><label>Event</label><select id="ce"><option value="singles">Singles</option><option value="doubles">Doubles</option><option value="team">Team</option></select></div>
+ <div><label>Format</label><select id="cf"><option value="knockout">Knockout</option><option value="league">League</option><option value="league_finals">League + Finals</option></select></div>
+ <div><label>Gender</label><select id="cg"><option value="open">Open</option><option value="male">Male</option><option value="female">Female</option><option value="mixed">Mixed</option></select></div>
+ <div><label>Display order</label><input id="co" type="number" value="${c.display_order||cats.length+1}"></div>
+ <div><label>Minimum age</label><input id="cmin" type="number" value="${c.min_age??''}"></div>
+ <div><label>Maximum age</label><input id="cmax" type="number" value="${c.max_age??''}"></div>
+ <div><label>Maximum entries</label><input id="cmaxe" type="number" value="${c.max_entries??''}"></div>
+ <div><label>Status</label><select id="cs"><option value="draft">Draft</option><option value="open">Open</option><option value="closed">Closed</option></select></div>
+ </div><br><button class="btn primary" onclick="saveCat()">Save</button>`;
+ if(c.event_type)$('ce').value=c.event_type;if(c.format_type)$('cf').value=c.format_type;if(c.gender_rule)$('cg').value=c.gender_rule;if(c.status)$('cs').value=c.status;openModal();
+}
+async function saveCat(){
+ let p={tournament_id:t.id,name:$('cn').value.trim(),event_type:$('ce').value,format_type:$('cf').value,gender_rule:$('cg').value,display_order:+$('co').value,min_age:$('cmin').value?+$('cmin').value:null,max_age:$('cmax').value?+$('cmax').value:null,max_entries:$('cmaxe').value?+$('cmaxe').value:null,status:$('cs').value};
+ if(!p.name)return notice('Category name is required.',true);
+ let r=editCat?await db.from('tournament_categories').update(p).eq('id',editCat):await db.from('tournament_categories').insert(p);
+ if(r.error)return notice(r.error.message,true);closeModal();await loadAll();
+}
+function renderCats(){
+ $('catTable').innerHTML=`<div class="tablewrap"><table class="table"><tr><th>Order</th><th>Category</th><th>Event</th><th>Format</th><th>Gender</th><th>Max</th><th>Status</th><th></th></tr>${cats.map(c=>`<tr><td>${c.display_order}</td><td><b>${esc(c.name)}</b></td><td>${esc(c.event_type)}</td><td>${esc(c.format_type)}</td><td>${esc(c.gender_rule)}</td><td>${c.max_entries??'—'}</td><td><span class="badge ${c.status}">${esc(c.status)}</span></td><td><button class="btn light" onclick="catModal('${c.id}')">Edit</button></td></tr>`).join('')}</table></div>`;
+}
+function renderRegs(){
+ let q=($('regSearch')?.value||'').toLowerCase(),f=$('regFilter')?.value||'';
+ let rows=regs.filter(r=>(!f||r.status===f)&&(!q||`${r.full_name} ${r.phone||''} ${r.email||''}`.toLowerCase().includes(q)));
+ $('regTable').innerHTML=`<div class="tablewrap"><table class="table"><tr><th>Player</th><th>Contact</th><th>Gender</th><th>City</th><th>Status</th><th>Action</th></tr>${rows.map(r=>`<tr><td><b>${esc(r.full_name)}</b><div class="small">${esc(r.display_name||'')}</div></td><td>${esc(r.phone||'')}<br>${esc(r.email||'')}</td><td>${esc(r.gender||'—')}</td><td>${esc(r.city||'—')}</td><td><span class="badge ${r.status}">${esc(r.status)}</span></td><td>${r.status==='pending'?`<button class="btn success" onclick="review('${r.id}','approved')">Approve</button> <button class="btn danger" onclick="review('${r.id}','rejected')">Reject</button>`:r.status==='approved'?`<button class="btn danger" onclick="review('${r.id}','rejected')">Reject</button>`:`<button class="btn light" onclick="review('${r.id}','pending')">Reset</button>`}</td></tr>`).join('')}</table></div>`;
+}
+async function review(id,status){let r=await db.from('tournament_registrations').update({status,reviewed_at:new Date().toISOString(),reviewed_by:me.user.id}).eq('id',id);if(r.error)return notice(r.error.message,true);await loadAll()}
+
+function memberNames(e){
+ return (e.tournament_entry_members||[]).sort((a,b)=>(a.member_order||0)-(b.member_order||0)).map(m=>regs.find(r=>r.id===m.registration_id)?.full_name||'?').join(' + ');
+}
+function renderEntries(){
+ $('entryTable').innerHTML=`<div class="tablewrap"><table class="table"><tr><th>Category</th><th>Entry</th><th>Type</th><th>Status</th></tr>${entries.map(e=>`<tr><td>${esc(cats.find(c=>c.id===e.category_id)?.name||'')}</td><td><b>${esc(memberNames(e)||'—')}</b></td><td>${esc(e.entry_type)}</td><td><span class="badge ${e.status}">${esc(e.status)}</span></td></tr>`).join('')}</table></div>`;
+}
+function entryModal(){
+ let approved=regs.filter(r=>r.status==='approved');
+ $('modalTitle').textContent='Create Entry';
+ $('modalBody').innerHTML=`<div class="form"><div class="full"><label>Category</label><select id="ec">${cats.filter(c=>c.status!=='closed').map(c=>`<option value="${c.id}">${esc(c.name)} — ${esc(c.event_type)}</option>`).join('')}</select></div><div class="full"><label>Approved registrations</label><div class="checks">${approved.map(r=>`<label class="check"><input type="checkbox" value="${r.id}"> ${esc(r.full_name)}</label>`).join('')}</div></div></div><br><button class="btn primary" onclick="saveEntry()">Create Entry</button>`;
+ openModal();
+}
+async function saveEntry(){
+ let c=cats.find(x=>x.id===$('ec').value),ids=[...document.querySelectorAll('#modalBody input[type=checkbox]:checked')].map(x=>x.value);
+ let n=c.event_type==='singles'?1:c.event_type==='doubles'?2:2;
+ if(c.event_type!=='team'&&ids.length!==n)return notice(c.event_type==='singles'?'Select 1 player.':'Select 2 players.',true);
+ if(c.event_type==='team'&&ids.length<2)return notice('A team needs at least 2 players.',true);
+ let p={tournament_id:t.id,category_id:c.id,registration_id:ids[0],entry_type:c.event_type==='singles'?'individual':c.event_type==='doubles'?'pair':'team',status:'confirmed'};
+ let r=await db.from('tournament_entries').insert(p).select().single();
+ if(r.error)return notice(r.error.message,true);
+ let entryId=r.data.id;
+ r=await db.from('tournament_entry_members').insert(ids.map((id,i)=>({entry_id:entryId,registration_id:id,member_order:i+1})));
+ if(r.error){await db.from('tournament_entries').delete().eq('id',entryId);return notice(r.error.message,true)}
+ closeModal();await loadAll();
+}
+
+async function loadDrawSelectors(){
+ if(!t)return;
+ $('drawCat').innerHTML='<option value="">Select category</option>'+cats.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');
+}
+async function generateDraw(){
+ let id=$('drawCat').value;if(!id)return notice('Select a category.',true);
+ let c=cats.find(x=>x.id===id);if(c?.format_type!=='knockout')return notice('Only knockout categories can be generated with the current draw engine.',true);
+ if(!confirm(`Generate knockout draw for ${c.name}?`))return;
+ let r=await db.rpc('generate_knockout_draw',{p_category_id:id,p_randomize:true});
+ if(r.error)return notice(r.error.message,true);
+ notice('Knockout draw generated.');await showDraw(id);
+}
+async function showDraw(cid){
+ $('drawInfo').innerHTML='';$('bracket').innerHTML='';if(!cid)return;
+ let d=await db.from('tournament_draws').select('*').eq('category_id',cid).maybeSingle();
+ if(d.error)return notice(d.error.message,true);
+ if(!d.data){$('drawInfo').innerHTML='<div class="card notice">No draw generated yet.</div>';return}
+ let [rr,mm]=await Promise.all([
+  db.from('tournament_draw_rounds').select('*').eq('draw_id',d.data.id).order('round_no'),
+  db.from('tournament_draw_matches').select('*').eq('draw_id',d.data.id).order('match_no')
+ ]);
+ if(rr.error||mm.error)return notice((rr.error||mm.error).message,true);
+ let rounds=rr.data||[],matches=mm.data||[];
+ $('drawInfo').innerHTML=`<div class="card"><b>${esc(cats.find(c=>c.id===cid)?.name||'Draw')}</b> · ${matches.length} matches · <span class="badge ${d.data.status||''}">${esc(d.data.status||'')}</span></div>`;
+ $('bracket').innerHTML=`<div class="card"><div class="bracket">${rounds.map(x=>`<div class="round"><h3>${esc(x.round_name)}</h3>${matches.filter(m=>m.round_id===x.id).map(m=>matchHtml(m)).join('')}</div>`).join('')}</div></div>`;
+}
+function matchHtml(m){
+ let a=entryLabel(m.entry_a_id),b=entryLabel(m.entry_b_id),can=m.status!=='completed'&&m.entry_a_id&&m.entry_b_id;
+ return `<div class="match"><div class="player ${m.winner_entry_id===m.entry_a_id?'winner':''}">${esc(a)}</div><div class="player ${m.winner_entry_id===m.entry_b_id?'winner':''}">${esc(b)}</div><div class="match-foot"><span>Match ${m.match_no} · ${esc(m.status)}</span>${can?`<button class="btn primary" style="padding:5px 8px" onclick="resultModal('${m.id}')">Result</button>`:''}</div>${m.status==='completed'?`<div class="match-foot"><span>Score ${m.score_a??0} - ${m.score_b??0}</span></div>`:''}</div>`;
+}
+function entryLabel(id){
+ if(!id)return 'TBD / BYE';
+ let e=entries.find(x=>x.id===id);return e?memberNames(e):'Entry';
+}
+async function resultModal(matchId){
+ let r=await db.from('tournament_draw_matches').select('*').eq('id',matchId).single();
+ if(r.error)return notice(r.error.message,true);let m=r.data;
+ let a=entryLabel(m.entry_a_id),b=entryLabel(m.entry_b_id);
+ $('modalTitle').textContent=`Match ${m.match_no} Result`;
+ $('modalBody').innerHTML=`<div class="scoregrid"><div class="playerbox"><h3>${esc(a)}</h3><label>Score</label><input id="sa" type="number" min="0" value="${m.score_a??0}"></div><div class="playerbox"><h3>${esc(b)}</h3><label>Score</label><input id="sb" type="number" min="0" value="${m.score_b??0}"></div></div><br><label>Winner</label><select id="winner"><option value="${m.entry_a_id}">${esc(a)}</option><option value="${m.entry_b_id}">${esc(b)}</option></select><br><br><button class="btn primary" onclick="saveResult('${m.id}')">Save Result</button>`;
+ openModal();
+}
+async function saveResult(matchId){
+ let r=await db.from('tournament_draw_matches').select('*').eq('id',matchId).single();if(r.error)return notice(r.error.message,true);
+ let sa=Number($('sa').value),sb=Number($('sb').value),winner=$('winner').value;
+ if(!Number.isFinite(sa)||!Number.isFinite(sb))return notice('Enter valid scores.',true);
+ if(sa===sb)return notice('A completed badminton match cannot have a tied score.',true);
+ let fn=await db.rpc('record_knockout_match_result',{p_match_id:matchId,p_winner_entry_id:winner,p_score_a:sa,p_score_b:sb});
+ if(fn.error)return notice(fn.error.message,true);
+ closeModal();notice('Match result saved and winner advanced.');await loadAll();await showDraw($('drawCat').value);
+}
+function openModal(){$('modal').classList.add('open')}function closeModal(){$('modal').classList.remove('open')}
+init();
+</script>
+</body>
+</html>
