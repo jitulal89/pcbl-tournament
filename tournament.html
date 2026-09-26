@@ -1,3 +1,183 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Tournament</title><link rel="stylesheet" href="styles.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script></head><body><header class="top"><div class="brand">🏏 Cricket Tournament</div><nav id="nav" class="nav"></nav></header><main id="app"></main><script src="app.js?v=8"></script><script>
-async function load(){await setNav();const slug=qs("slug");try{const t=await getTournament(slug);app.innerHTML=`<section class="hero"><div class="row">${t.logo_url?`<img class="logo logo-lg" src="${esc(t.logo_url)}">`:"<div class='logo logo-lg' style='display:grid;place-items:center;font-size:40px'>🏏</div>"}<div><span class="pill">${esc(t.status)}</span><h1>${esc(t.name)}</h1><p>${esc(t.description||"Welcome to the tournament.")}</p>${t.status==="registration_open"?`<a class="btn" href="register.html?slug=${encodeURIComponent(t.slug)}">Register as a Player</a>`:"<span class='pill'>Registration Closed</span>"}</div></div></section><div class="row section"><a class="btn secondary" href="captain-login.html?slug=${encodeURIComponent(t.slug)}">👤 Captain Login</a></div><div class="grid"><div class="card"><div class="stat">👥</div><h3>Players</h3><p class="muted">Player information will be published as the tournament progresses.</p></div><div class="card"><div class="stat">🔨</div><h3>Auction</h3><p class="muted">Auction details will appear when the admin makes the auction ready.</p></div><div class="card"><div class="stat">🏆</div><h3>Teams</h3><p class="muted">Teams and squads will appear here.</p></div></div>`}catch(e){app.innerHTML=msg(e.message,"err")}}load();
-</script></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Badminton Tournament</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--bg:#f4f7fb;--card:#fff;--text:#172033;--muted:#667085;--line:#e5e7eb;--primary:#2563eb;--dark:#111827;--green:#15803d;--red:#dc2626}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial}
+.top{background:#111827;color:#fff;padding:14px 18px;position:sticky;top:0;z-index:20}.topin{max-width:1100px;margin:auto;display:flex;justify-content:space-between;align-items:center;gap:15px}.brand{font-size:19px;font-weight:800}.nav{display:flex;gap:7px;flex-wrap:wrap}.nav button{background:transparent;border:1px solid #475569;color:#fff;border-radius:9px;padding:8px 12px;font-weight:700}.nav button.active{background:#fff;color:#111827}
+.wrap{max-width:1100px;margin:auto;padding:18px}.hero{background:linear-gradient(135deg,#182235,#263650);color:#fff;border-radius:22px;padding:28px;margin-bottom:18px;min-height:180px;display:flex;align-items:center}.hero-in{display:flex;align-items:center;gap:22px}.logo{width:100px;height:100px;border-radius:18px;object-fit:contain;background:#fff;padding:8px}.hero h1{font-size:38px;margin:0 0 8px}.hero p{margin:0;color:#d7deea;font-size:16px}.btn{border:0;border-radius:10px;padding:11px 16px;background:var(--primary);color:#fff;font-weight:800;cursor:pointer}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}.stat,.card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:0 6px 22px rgba(15,23,42,.05)}.stat span{display:block;color:var(--muted);font-size:12px}.stat b{display:block;font-size:28px;margin-top:4px}
+.section{margin:22px 0}.section h2{font-size:25px;margin:0 0 12px}.sub{color:var(--muted);font-size:14px;margin-bottom:12px}
+.events{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.event{padding:16px;border:1px solid var(--line);border-radius:14px;background:#fff}.event h3{margin:0 0 5px}.meta{color:var(--muted);font-size:13px}
+.players{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.player{border:1px solid var(--line);border-radius:14px;background:#fff;overflow:hidden;cursor:pointer;transition:.15s}.player:hover{box-shadow:0 8px 24px rgba(15,23,42,.10);transform:translateY(-1px)}.avatar{height:130px;background:#eaf0f8;display:flex;align-items:center;justify-content:center;font-size:45px;color:#64748b}.avatar img{width:100%;height:100%;object-fit:cover}.pbody{padding:12px}.pbody h3{margin:0 0 4px;font-size:17px}.chips{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px}.chip{font-size:11px;padding:4px 7px;border-radius:999px;background:#eef2ff;color:#3730a3}.record{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px}.record div{background:#f8fafc;border-radius:8px;padding:7px;text-align:center}.record b{display:block;font-size:17px}.record span{font-size:10px;color:var(--muted)}
+.filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}.filters select,.filters input{padding:9px;border:1px solid #d1d5db;border-radius:9px;background:#fff}
+.tablewrap{overflow:auto;border:1px solid var(--line);border-radius:12px;background:#fff}.table{border-collapse:collapse;width:100%;min-width:720px}.table th,.table td{padding:11px;border-bottom:1px solid var(--line);text-align:left;font-size:13px}.table th{background:#f8fafc;color:var(--muted);font-size:11px}.status{padding:4px 8px;border-radius:999px;font-size:10px;font-weight:800;background:#e5e7eb}.status.ready{background:#dcfce7;color:#166534}.status.completed{background:#dcfce7;color:#166534}.status.upcoming{background:#eef2f7;color:#475569}
+.bracket{display:flex;gap:22px;overflow:auto;padding:5px}.round{min-width:220px}.round h3{text-align:center;color:var(--muted);font-size:13px}.match{border:1px solid #dbe1ea;border-radius:10px;margin:14px 0;overflow:hidden;background:#fff}.match .side{padding:9px}.match .side+.side{border-top:1px solid #edf0f4}.match .win{font-weight:800;background:#f0fdf4}.matchfoot{padding:7px 9px;background:#f8fafc;color:var(--muted);font-size:10px}
+.modalback{position:fixed;inset:0;background:#0008;display:none;align-items:center;justify-content:center;padding:15px;z-index:50}.modalback.open{display:flex}.modal{background:#fff;border-radius:18px;width:min(650px,100%);max-height:90vh;overflow:auto;padding:20px}.modalhead{display:flex;justify-content:space-between;align-items:center}.modal h2{margin:0}.close{border:0;background:#eef2f7;border-radius:8px;padding:8px;cursor:pointer}
+.profile{display:grid;grid-template-columns:140px 1fr;gap:18px}.profilephoto{width:140px;height:140px;border-radius:18px;background:#eaf0f8;display:flex;align-items:center;justify-content:center;font-size:50px;overflow:hidden}.profilephoto img{width:100%;height:100%;object-fit:cover}.detailgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.detail{background:#f8fafc;padding:9px;border-radius:8px}.detail small{display:block;color:var(--muted)}
+.empty{padding:25px;text-align:center;color:var(--muted)}.hidden{display:none!important}
+@media(max-width:800px){.stats{grid-template-columns:repeat(2,1fr)}.players{grid-template-columns:repeat(2,1fr)}.hero h1{font-size:30px}.events{grid-template-columns:1fr}}
+@media(max-width:550px){.topin{align-items:flex-start;flex-direction:column}.hero{padding:20px}.hero-in{align-items:flex-start}.logo{width:72px;height:72px}.hero h1{font-size:25px}.wrap{padding:12px}.players{grid-template-columns:1fr 1fr}.profile{grid-template-columns:1fr}.profilephoto{width:110px;height:110px}.detailgrid{grid-template-columns:1fr}.nav{width:100%}.nav button{flex:1}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="topin">
+    <div class="brand">🏸 Tournament Manager</div>
+    <div class="nav">
+      <button data-page="home" class="active">Home</button>
+      <button data-page="playersPage">Players</button>
+      <button data-page="matchesPage">Matches</button>
+      <button data-page="drawsPage">Draws</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div id="message"></div>
+  <section id="home" class="page">
+    <div class="hero">
+      <div class="hero-in">
+        <img id="logo" class="logo hidden">
+        <div>
+          <h1 id="title">Tournament</h1>
+          <p id="meta"></p>
+          <br><button class="btn" onclick="openRegistration()">Player Registration</button>
+        </div>
+      </div>
+    </div>
+    <div id="stats" class="stats"></div>
+    <div class="section"><h2>Events</h2><div id="events" class="events"></div></div>
+    <div class="section"><h2>Players</h2><div class="sub">Tap a player to see profile, events and matches played.</div><div id="homePlayers" class="players"></div></div>
+    <div class="section"><h2>Recent & Upcoming Matches</h2><div id="homeMatches"></div></div>
+  </section>
+
+  <section id="playersPage" class="page hidden">
+    <div class="section"><h2>Players</h2><div class="sub">Player profiles and tournament records.</div>
+      <div class="filters"><input id="playerSearch" placeholder="Search player or city..." oninput="renderPlayers()"><select id="playerCat" onchange="renderPlayers()"><option value="">All events</option></select></div>
+      <div id="allPlayers" class="players"></div>
+    </div>
+  </section>
+
+  <section id="matchesPage" class="page hidden">
+    <div class="section"><h2>Matches</h2><div class="sub">Fixtures, scores and match results.</div>
+      <div class="filters"><select id="matchCat" onchange="renderMatches()"><option value="">All events</option></select><select id="matchStatus" onchange="renderMatches()"><option value="">All statuses</option><option value="ready">Ready</option><option value="upcoming">Upcoming</option><option value="completed">Completed</option></select></div>
+      <div id="allMatches"></div>
+    </div>
+  </section>
+
+  <section id="drawsPage" class="page hidden">
+    <div class="section"><h2>Draws</h2><div class="sub">Knockout brackets by event.</div><select id="drawCat" onchange="renderDraw(this.value)"></select><div id="publicDraw" style="margin-top:14px"></div></div>
+  </section>
+</main>
+
+<div id="modalBack" class="modalback"><div class="modal"><div class="modalhead"><h2 id="modalTitle"></h2><button class="close" onclick="closeModal()">✕</button></div><div id="modalBody"></div></div></div>
+
+<script>
+const URL='https://bfalondvpfijthberomf.supabase.co';
+const KEY='sb_publishable_kiyREqgce0B0-IZ8jOUkdQ_w8pas2ae';
+const db=supabase.createClient(URL,KEY);
+const params=new URLSearchParams(location.search);
+let tid=params.get('tournament');
+let tournament=null,cats=[],regs=[],entries=[],members=[],draws=[],rounds=[],matches=[];
+const $=id=>document.getElementById(id);
+const esc=x=>String(x??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+const regById=id=>regs.find(x=>x.id===id);
+const entryById=id=>entries.find(x=>x.id===id);
+const catById=id=>cats.find(x=>x.id===id);
+function entryPlayers(e){return members.filter(m=>m.entry_id===e.id).sort((a,b)=>(a.member_order||0)-(b.member_order||0)).map(m=>regById(m.registration_id)).filter(Boolean)}
+function entryName(id){const e=entryById(id);return e?entryPlayers(e).map(p=>p.full_name).join(' & '):'TBD'}
+function playerEntries(pid){return entries.filter(e=>entryPlayers(e).some(p=>p.id===pid))}
+function playerMatches(pid){const ids=new Set(playerEntries(pid).map(e=>e.id));return matches.filter(m=>ids.has(m.entry_a_id)||ids.has(m.entry_b_id))}
+function matchWinnerName(m){return m.winner_entry_id?entryName(m.winner_entry_id):''}
+function playerStats(pid){
+ const ms=playerMatches(pid),played=ms.filter(m=>m.status==='completed'),wins=played.filter(m=>entryPlayers(entryById(m.winner_entry_id)||{}).some(p=>p.id===pid));
+ return {matches:played.length,wins:wins.length,losses:Math.max(0,played.length-wins.length)}
+}
+function nav(){
+ document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.querySelectorAll('.page').forEach(x=>x.classList.add('hidden'));$(b.dataset.page).classList.remove('hidden');if(b.dataset.page==='drawsPage'&&cats[0]){$('drawCat').value=$('drawCat').value||cats[0].id;renderDraw($('drawCat').value)}})
+}
+function showMsg(x){$('message').innerHTML=`<div class="card">${esc(x)}</div>`;setTimeout(()=>{$('message').innerHTML=''},4000)}
+async function init(){
+ nav();
+ if(!tid){let q=await db.from('tournaments').select('id').order('created_at',{ascending:false}).limit(1).single();tid=q.data?.id}
+ if(!tid)return showMsg('Tournament not found.');
+ await load();
+}
+async function load(){
+ const tr=await db.from('tournaments').select('*').eq('id',tid).single();
+ if(tr.error)return showMsg(tr.error.message);tournament=tr.data;
+ const [ca,re,en,me,dr]=await Promise.all([
+  db.from('tournament_categories').select('*').eq('tournament_id',tid).order('display_order'),
+  db.from('tournament_registrations').select('*').eq('tournament_id',tid).eq('status','approved').order('full_name'),
+  db.from('tournament_entries').select('*').eq('tournament_id',tid),
+  db.from('tournament_entry_members').select('*'),
+  db.from('tournament_draws').select('*').eq('tournament_id',tid)
+ ]);
+ const er=[ca,re,en,me,dr].find(x=>x.error);if(er)return showMsg(er.error.message);
+ cats=ca.data||[];regs=re.data||[];entries=en.data||[];members=me.data||[];draws=dr.data||[];
+ await loadMatches();
+ renderAll();
+}
+async function loadMatches(){
+ if(!draws.length){matches=[];rounds=[];return}
+ const ids=draws.map(d=>d.id);
+ const [rr,mm]=await Promise.all([
+  db.from('tournament_draw_rounds').select('*').in('draw_id',ids).order('round_no'),
+  db.from('tournament_draw_matches').select('*').in('draw_id',ids).order('match_no')
+ ]);
+ rounds=rr.data||[];matches=mm.data||[];
+}
+function renderAll(){
+ $('title').textContent=tournament.name;
+ $('meta').textContent=[tournament.venue,tournament.start_date,tournament.end_date].filter(Boolean).join(' · ')||'Badminton Tournament';
+ if(tournament.logo_url){$('logo').src=tournament.logo_url;$('logo').classList.remove('hidden')}
+ $('stats').innerHTML=[['Events',cats.length],['Players',regs.length],['Entries',entries.length],['Matches',matches.length]].map(x=>`<div class="stat"><span>${x[0]}</span><b>${x[1]}</b></div>`).join('');
+ $('events').innerHTML=cats.map(c=>`<div class="event"><h3>${esc(c.name)}</h3><div class="meta">${esc(c.event_type)} · ${esc(c.format_type)} · ${esc(c.gender_rule)} · ${entries.filter(e=>e.category_id===c.id).length} entries</div></div>`).join('')||'<div class="empty">No events yet.</div>';
+ $('playerCat').innerHTML='<option value="">All events</option>'+cats.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');
+ $('matchCat').innerHTML='<option value="">All events</option>'+cats.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');
+ $('drawCat').innerHTML=cats.filter(c=>c.format_type==='knockout').map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');
+ renderPlayers('homePlayers',6);renderMatches('homeMatches',6);renderPlayers();
+ renderMatches();if(cats[0])renderDraw(cats.find(c=>c.format_type==='knockout')?.id||cats[0].id);
+}
+function playerCard(p){
+ const s=playerStats(p.id),pe=playerEntries(p.id);
+ return `<div class="player" onclick="openPlayer('${p.id}')"><div class="avatar">${p.photo_url?`<img src="${esc(p.photo_url)}">`:'🏸'}</div><div class="pbody"><h3>${esc(p.full_name)}</h3><div class="meta">${esc(p.city||'')}${p.gender?' · '+esc(p.gender):''}</div><div class="chips">${pe.map(e=>`<span class="chip">${esc(catById(e.category_id)?.name||'')}</span>`).join('')}</div><div class="record"><div><b>${s.matches}</b><span>Played</span></div><div><b>${s.wins}</b><span>Won</span></div><div><b>${s.losses}</b><span>Lost</span></div></div></div></div>`;
+}
+function renderPlayers(target='allPlayers',limit=null){
+ const q=($('playerSearch')?.value||'').toLowerCase(),cid=$('playerCat')?.value||'';
+ let ps=regs.filter(p=>(!q||`${p.full_name} ${p.city||''}`.toLowerCase().includes(q))&&(!cid||playerEntries(p.id).some(e=>e.category_id===cid)));
+ if(limit)ps=ps.slice(0,limit);
+ $(target).innerHTML=ps.map(playerCard).join('')||'<div class="empty">No players found.</div>';
+}
+function matchRow(m){
+ const c=catById(draws.find(d=>d.id===m.draw_id)?.category_id);
+ return `<tr><td>${esc(c?.name||'')}</td><td>Match ${m.match_no}</td><td><b>${esc(entryName(m.entry_a_id))}</b><br>vs<br><b>${esc(entryName(m.entry_b_id))}</b></td><td>${m.status==='completed'?`${m.score_a??0} - ${m.score_b??0}`:'—'}</td><td><span class="status ${esc(m.status)}">${esc(m.status)}</span></td><td>${esc(matchWinnerName(m))}</td></tr>`;
+}
+function renderMatches(target='allMatches',limit=null){
+ let arr=matches.slice();const cid=$( 'matchCat')?.value||'',st=$('matchStatus')?.value||'';
+ if(cid)arr=arr.filter(m=>draws.find(d=>d.id===m.draw_id)?.category_id===cid);if(st)arr=arr.filter(m=>m.status===st);if(limit)arr=arr.slice(0,limit);
+ $(target).innerHTML=arr.length?`<div class="tablewrap"><table class="table"><tr><th>Event</th><th>Match</th><th>Players / Pair</th><th>Score</th><th>Status</th><th>Winner</th></tr>${arr.map(matchRow).join('')}</table></div>`:'<div class="empty">No matches yet.</div>';
+}
+function renderDraw(cid){
+ if(!cid)return;
+ const d=draws.find(x=>x.category_id===cid);if(!d){$('publicDraw').innerHTML='<div class="empty">No draw generated for this event.</div>';return}
+ const rs=rounds.filter(r=>r.draw_id===d.id).sort((a,b)=>a.round_no-b.round_no);
+ $('publicDraw').innerHTML=`<div class="bracket">${rs.map(r=>`<div class="round"><h3>${esc(r.round_name)}</h3>${matches.filter(m=>m.round_id===r.id).sort((a,b)=>a.match_no-b.match_no).map(m=>`<div class="match"><div class="side ${m.winner_entry_id===m.entry_a_id?'win':''}">${esc(entryName(m.entry_a_id))}</div><div class="side ${m.winner_entry_id===m.entry_b_id?'win':''}">${esc(entryName(m.entry_b_id))}</div><div class="matchfoot">Match ${m.match_no} · ${esc(m.status)}${m.status==='completed'?` · ${m.score_a}-${m.score_b}`:''}</div></div>`).join('')}</div>`).join('')}</div>`;
+}
+function openPlayer(pid){
+ const p=regById(pid),s=playerStats(pid),pe=playerEntries(pid),ms=playerMatches(pid);
+ $('modalTitle').textContent=p.full_name;
+ $('modalBody').innerHTML=`<div class="profile"><div class="profilephoto">${p.photo_url?`<img src="${esc(p.photo_url)}">`:'🏸'}</div><div><div class="detailgrid"><div class="detail"><small>Display name</small>${esc(p.display_name||p.full_name)}</div><div class="detail"><small>Gender</small>${esc(p.gender||'—')}</div><div class="detail"><small>City</small>${esc(p.city||'—')}</div><div class="detail"><small>Matches played</small>${s.matches}</div><div class="detail"><small>Wins</small>${s.wins}</div><div class="detail"><small>Losses</small>${s.losses}</div></div><h3>Events</h3>${pe.map(e=>`<div class="chip" style="display:inline-block;margin:2px">${esc(catById(e.category_id)?.name||'')}</div>`).join('')||'—'}</div></div><h3 style="margin-top:20px">Matches played</h3>${ms.length?`<div class="tablewrap"><table class="table"><tr><th>Event</th><th>Match</th><th>Opponent / Pair</th><th>Score</th><th>Result</th></tr>${ms.map(m=>{const eids=new Set(playerEntries(pid).map(e=>e.id));const myEntry=eids.has(m.entry_a_id)?m.entry_a_id:m.entry_b_id;const opp=myEntry===m.entry_a_id?entryName(m.entry_b_id):entryName(m.entry_a_id);const result=m.status!=='completed'?'Upcoming':m.winner_entry_id===myEntry?'Won':'Lost';return `<tr><td>${esc(catById(draws.find(d=>d.id===m.draw_id)?.category_id)?.name||'')}</td><td>${m.match_no}</td><td>${esc(opp)}</td><td>${m.status==='completed'?`${m.score_a}-${m.score_b}`:'—'}</td><td>${result}</td></tr>`}).join('')}</table></div>`:'<div class="empty">No matches played yet.</div>'}`;
+ $('modalBack').classList.add('open');
+}
+function closeModal(){$('modalBack').classList.remove('open')}
+function openRegistration(){location.href='registration.html?tournament='+encodeURIComponent(tid)}
+init();
+</script>
+</body>
+</html>

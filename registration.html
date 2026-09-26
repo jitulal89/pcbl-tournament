@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tournament Registration</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f4f7fb;color:#172033;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial}.hero{background:#111827;color:#fff;padding:28px 18px}.wrap{max-width:850px;margin:auto}.brand{display:flex;align-items:center;gap:15px}.logo{width:70px;height:70px;border-radius:14px;background:#fff;object-fit:contain;padding:5px}.hero h1{margin:0;font-size:28px}.hero p{margin:6px 0;color:#d1d5db}.card{background:#fff;border:1px solid #e5e7eb;border-radius:15px;padding:20px;margin:18px 0;box-shadow:0 8px 28px rgba(15,23,42,.07)}label{display:block;font-size:13px;font-weight:800;margin:0 0 6px}input,select,textarea{width:100%;padding:10px;border:1px solid #d1d5db;border-radius:9px;font:inherit}textarea{min-height:90px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.full{grid-column:1/-1}.cats{display:grid;grid-template-columns:1fr 1fr;gap:9px}.cat{border:1px solid #d1d5db;border-radius:10px;padding:11px;background:#fff}.cat input{width:auto;margin-right:8px}.btn{border:0;border-radius:9px;padding:11px 17px;background:#2563eb;color:#fff;font-weight:800;cursor:pointer}.btn:disabled{opacity:.5;cursor:not-allowed}.note{padding:12px;border-radius:10px;background:#eff6ff;color:#1e40af;font-size:13px}.error{background:#fef2f2;color:#991b1b}.success{background:#f0fdf4;color:#166534}.muted{color:#6b7280;font-size:13px}.hidden{display:none!important}@media(max-width:600px){.grid,.cats{grid-template-columns:1fr}.full{grid-column:auto}}
+</style>
+</head>
+<body>
+<header class="hero"><div class="wrap brand"><img id="logo" class="logo hidden"><div><h1 id="title">Tournament Registration</h1><p id="meta"></p></div></div></header>
+<main class="wrap">
+<div id="message"></div>
+<div id="closed" class="card hidden"></div>
+<form id="form" class="card">
+<div id="instructions" class="note hidden"></div>
+<h2>Player Registration</h2>
+<div class="grid">
+<div class="full"><label>Full Name *</label><input id="name" required></div>
+<div><label>Display Name</label><input id="display"></div>
+<div><label>Gender *</label><select id="gender" required><option value="">Select</option><option value="M">Male</option><option value="F">Female</option><option value="O">Other</option></select></div>
+<div id="dobWrap"><label>Date of Birth</label><input id="dob" type="date"></div>
+<div id="phoneWrap"><label>Phone *</label><input id="phone" type="tel"></div>
+<div id="emailWrap"><label>Email</label><input id="email" type="email"></div>
+<div><label>City</label><input id="city"></div>
+<div><label>Photo URL</label><input id="photo" type="url" placeholder="Optional"></div>
+<div class="full"><label>Categories *</label><div id="categories" class="cats"></div></div>
+<div class="full"><label>Notes</label><textarea id="notes" placeholder="Partner preference, age-category details, etc."></textarea></div>
+</div>
+<div style="margin-top:18px"><button id="submit" class="btn" type="submit">Submit Registration</button></div>
+</form>
+</main>
+<script>
+const URL='https://bfalondvpfijthberomf.supabase.co';
+const KEY='sb_publishable_kiyREqgce0B0-IZ8jOUkdQ_w8pas2ae';
+const db=supabase.createClient(URL,KEY);
+const params=new URLSearchParams(location.search);const tid=params.get('tournament');
+let tournament,formCfg,categories=[];
+const $=id=>document.getElementById(id);
+function esc(x){return String(x??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+function show(text,cls='success'){ $('message').innerHTML=`<div class="card note ${cls}">${esc(text)}</div>`}
+async function init(){
+ if(!tid){show('Missing tournament link.','error');$('form').classList.add('hidden');return}
+ let r=await db.from('tournaments').select('*').eq('id',tid).single();
+ if(r.error){show(r.error.message,'error');return} tournament=r.data;
+ r=await db.from('registration_forms').select('*').eq('tournament_id',tid).single();
+ if(r.error){show('Registration is not configured for this tournament.','error');$('form').classList.add('hidden');return} formCfg=r.data;
+ $('title').textContent=tournament.name;$('meta').textContent=[tournament.venue,tournament.start_date&&new Date(tournament.start_date+'T00:00:00').toLocaleDateString(),tournament.end_date&&new Date(tournament.end_date+'T00:00:00').toLocaleDateString()].filter(Boolean).join(' • ');
+ if(tournament.logo_url){$('logo').src=tournament.logo_url;$('logo').classList.remove('hidden')}
+ if(formCfg.instructions){$('instructions').textContent=formCfg.instructions;$('instructions').classList.remove('hidden')}
+ $('phone').required=formCfg.require_phone;$('email').required=formCfg.require_email;$('dob').required=formCfg.require_date_of_birth;
+ if(!formCfg.public_enabled){$('form').classList.add('hidden');$('closed').classList.remove('hidden');$('closed').innerHTML='<h2>Registration Closed</h2><p class="muted">Registration is not currently open for this tournament.</p>';return}
+ r=await db.from('tournament_categories').select('*').eq('tournament_id',tid).eq('status','open').order('display_order');
+ if(r.error){show(r.error.message,'error');return} categories=r.data||[];
+ $('categories').innerHTML=categories.length?categories.map(c=>`<label class="cat"><input type="checkbox" name="category" value="${c.id}"><b>${esc(c.name)}</b><br><span class="muted">${esc(c.event_type)} • ${esc(c.gender_rule)}${c.min_age?' • '+c.min_age+'+':''}${c.max_age?' • up to '+c.max_age:''}</span></label>`).join(''):'<span class="muted">No categories are currently open.</span>';
+}
+$('form').addEventListener('submit',async e=>{
+ e.preventDefault();$('submit').disabled=true;
+ const ids=[...document.querySelectorAll('input[name=category]:checked')].map(x=>x.value);
+ if(!ids.length){show('Select at least one category.','error');$('submit').disabled=false;return}
+ const selected=categories.filter(c=>ids.includes(c.id));
+ const dob=$('dob').value;
+ if(dob){
+  const age=Math.floor((Date.now()-new Date(dob).getTime())/31557600000);
+  const bad=selected.find(c=>(c.min_age!=null&&age<c.min_age)||(c.max_age!=null&&age>c.max_age));
+  if(bad){show(`Your age does not meet the requirement for ${bad.name}.`,'error');$('submit').disabled=false;return}
+ }
+ const payload={tournament_id:tid,full_name:$('name').value.trim(),display_name:$('display').value.trim()||null,gender:$('gender').value,date_of_birth:dob||null,phone:$('phone').value.trim()||null,email:$('email').value.trim()||null,city:$('city').value.trim()||null,photo_url:$('photo').value.trim()||null,notes:$('notes').value.trim()||null,status:'pending',requested_categories:ids};
+ let r=await db.from('tournament_registrations').insert(payload).select().single();
+ if(r.error){show(r.error.message,'error');$('submit').disabled=false;return}
+ const req=ids.map(category_id=>({registration_id:r.data.id,category_id}));
+ r=await db.from('registration_category_requests').insert(req);
+ if(r.error){await db.from('tournament_registrations').delete().eq('id',payload.id);show(r.error.message,'error');$('submit').disabled=false;return}
+ $('form').innerHTML=`<div class="success note"><h2>Registration Submitted</h2><p>Thank you, ${esc(payload.full_name)}. Your registration is pending admin approval.</p><p>You can close this page now.</p></div>`;
+});
+init();
+</script>
+</body></html>
