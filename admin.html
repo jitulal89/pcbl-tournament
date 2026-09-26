@@ -21,12 +21,21 @@ input,select,textarea{width:100%;padding:9px;border:1px solid #d1d5db;border-rad
 .bracket{display:flex;gap:25px;overflow:auto;padding:8px}.round{min-width:235px}.round h3{text-align:center;color:var(--muted);font-size:13px}.match{border:1px solid #dbe1ea;border-radius:9px;margin:14px 0;overflow:hidden;background:#fff}.match .side{padding:9px;min-height:38px}.match .side+.side{border-top:1px solid #edf0f4}.winner{font-weight:800;background:#f0fdf4}.match-foot{padding:7px 9px;background:#f8fafc;font-size:11px;color:#6b7280;display:flex;justify-content:space-between;gap:5px}
 .notice{padding:11px;border-radius:9px;background:#eff6ff;color:#1e40af;font-size:13px}.error{background:#fef2f2;color:#991b1b}.empty{padding:25px;text-align:center;color:var(--muted)}
 .modal{position:fixed;inset:0;background:#0008;display:none;align-items:center;justify-content:center;padding:15px;z-index:30}.modal.open{display:flex}.modalbox{background:#fff;border-radius:14px;padding:20px;width:min(760px,100%);max-height:90vh;overflow:auto}.checks{display:flex;flex-wrap:wrap;gap:7px}.check{border:1px solid #d1d5db;border-radius:8px;padding:8px}.check input{width:auto}.scoregrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.playerbox{padding:12px;border:1px solid var(--line);border-radius:10px}
-@media(max-width:900px){aside{width:62px}.nav button{font-size:0;text-align:center}.grid{grid-template-columns:1fr 1fr}.players{grid-template-columns:1fr 1fr}.form{grid-template-columns:1fr}main{padding:12px}}
+@media(max-width:900px){
+aside{width:100%;border-right:0;border-bottom:1px solid var(--line);padding:8px;position:sticky;top:55px;z-index:15}
+.app{display:block}
+.nav{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
+.nav button{width:auto;min-width:max-content;font-size:12px;text-align:center;padding:9px 10px;white-space:nowrap}
+main{padding:12px}
+.grid{grid-template-columns:1fr 1fr}
+.players{grid-template-columns:1fr 1fr}
+.form{grid-template-columns:1fr}
+}
 @media(max-width:550px){.grid{grid-template-columns:1fr}.players{grid-template-columns:1fr 1fr}.head{flex-direction:column}.profile{grid-template-columns:1fr}.profilephoto{width:110px;height:110px}.detailgrid{grid-template-columns:1fr}.scoregrid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
-<header class="top"><div class="brand">🏸 Badminton Tournament Admin V4</div><div><span id="email" class="small"></span> <button class="btn light" onclick="logout()">Sign out</button></div></header>
+<header class="top"><div class="brand">🏸 Badminton Tournament Admin V4</div><div><span id="email" class="small"></span> <button class="btn light" onclick="openPublic()">🌐 Public View</button> <button class="btn light" onclick="logout()">↪ Sign out</button></div></header>
 <div class="app">
 <aside><div class="nav">
 <button class="active" data-p="dashboard">📊 Dashboard</button>
@@ -95,8 +104,32 @@ function playerMatches(pid){const ids=new Set(playerEntries(pid).map(e=>e.id));r
 function playerStats(pid){const ms=playerMatches(pid),done=ms.filter(m=>m.status==='completed'),wins=done.filter(m=>m.winner_entry_id&&members(entryById(m.winner_entry_id)).some(p=>p.id===pid));return{played:done.length,wins:wins.length,losses:done.length-wins.length}}
 function notice(x,error=false){$('msg').innerHTML=x?`<div class="card notice ${error?'error':''}">${esc(x)}</div>`:'';if(x)setTimeout(()=>{$('msg').innerHTML=''},4500)}
 document.querySelectorAll('.nav button').forEach(b=>b.onclick=async()=>{document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));$(b.dataset.p).classList.add('active');if(b.dataset.p==='draw')await loadDrawSelectors();if(b.dataset.p==='players')renderPlayers()});
-async function init(){const r=await db.auth.getSession();me=r.data.session;if(!me)return notice('Please sign in using your existing Supabase admin account.','error');$('email').textContent=me.user.email||'';await loadTournaments()}
-async function logout(){await db.auth.signOut();location.href='tournament-manager.html'}
+function openPublic(){const id=t?.id||localStorage.getItem('badminton_admin_tournament')||'';location.href='tournament.html'+(id?'?tournament='+encodeURIComponent(id):'')}\nasync function init(){
+ const r=await db.auth.getSession();
+ me=r.data.session;
+ if(!me){showLogin();return}
+ $('email').textContent=me.user.email||'';
+ await loadTournaments()
+}
+function showLogin(){
+ document.querySelector('.app').innerHTML=`<main style="max-width:520px;margin:35px auto;width:100%">
+ <div class="card">
+ <h1 style="margin-top:0">🏸 Badminton Admin</h1>
+ <div class="sub" style="margin-bottom:18px">Sign in with your existing Supabase admin account.</div>
+ <label>Email</label><input id="loginEmail" type="email" autocomplete="email" placeholder="Email">
+ <br><br><label>Password</label><input id="loginPassword" type="password" autocomplete="current-password" placeholder="Password">
+ <br><br><button class="btn primary" style="width:100%" onclick="login()">Sign in</button>
+ <div id="loginMsg" class="notice" style="margin-top:12px;display:none"></div>
+ </div></main>`;
+}
+async function login(){
+ const email=$('loginEmail').value.trim(),password=$('loginPassword').value;
+ if(!email||!password){$('loginMsg').style.display='block';$('loginMsg').className='notice error';$('loginMsg').textContent='Enter email and password.';return}
+ const r=await db.auth.signInWithPassword({email,password});
+ if(r.error){$('loginMsg').style.display='block';$('loginMsg').className='notice error';$('loginMsg').textContent=r.error.message;return}
+ location.reload();
+}
+async function logout(){const id=t?.id||localStorage.getItem('badminton_admin_tournament')||'';await db.auth.signOut();location.href='tournament.html'+(id?'?tournament='+encodeURIComponent(id):'')}
 async function loadTournaments(){const r=await db.from('tournaments').select('*').order('created_at',{ascending:false});if(r.error)return notice(r.error.message,true);tournaments=r.data||[];$('tournament').innerHTML=tournaments.map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('');let saved=localStorage.getItem('badminton_admin_tournament'),id=tournaments.find(x=>x.id===saved)?.id||tournaments[0]?.id;if(id){$('tournament').value=id;await choose(id)}}
 async function choose(id){t=tournaments.find(x=>x.id===id);if(!t)return;localStorage.setItem('badminton_admin_tournament',id);$('title').textContent=t.name;await loadAll();await loadSettings()}
 async function loadAll(){
